@@ -41,6 +41,24 @@ export function photoPlacement(boxW, boxH, photoW, photoH, crop) {
   return { w, h, cx, cy, rot }
 }
 
+// The working wall area in inches + where its origin sits.
+// - photo mode with a selected region: region drives size + origin (fractions of photo).
+// - blank mode / photo full-calibration: whole wall, origin at photo/canvas top-left.
+// Returns {wallWIn, wallHIn, ox, oy} where ox/oy are photo fractions of the inches-origin.
+export function workArea(state) {
+  const ppi = state.pixelsPerInch
+  if (!ppi) return { wallWIn: 0, wallHIn: 0, ox: 0, oy: 0 }
+  if (state.wallMode === 'photo' && state.wallRegion) {
+    return {
+      wallWIn: state.wallRegionWIn,
+      wallHIn: state.wallRegionHIn,
+      ox: state.wallRegion.x,
+      oy: state.wallRegion.y,
+    }
+  }
+  return { wallWIn: state.wallNaturalW / ppi, wallHIn: state.wallNaturalH / ppi, ox: 0, oy: 0 }
+}
+
 // Load a dataURL/URL into an HTMLImageElement for konva <Image image={..}>
 export function useImage(src) {
   const [img, setImg] = useState(null)

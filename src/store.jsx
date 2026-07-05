@@ -11,6 +11,11 @@ const initial = {
   wallNaturalW: 0,
   wallNaturalH: 0,
   pixelsPerInch: null, // px per inch. blank: from typed dims. photo: from calibration.
+  // Photo mode: a selected sub-rectangle of the photo used as the working wall area.
+  // Fractions (0..1) of the photo + its real size. Origin (0,0 in) = region top-left.
+  wallRegion: null, // {x,y,w,h} fractions of the photo, or null
+  wallRegionWIn: 0,
+  wallRegionHIn: 0,
   // Reusable frame types
   frameStyles: [], // {id,name,image,imgW,imgH,outerW,outerH,openingFrac,count}
   // Uploaded user photos

@@ -15,6 +15,7 @@ Everything renders at real-world scale so proportions match the physical wall.
 ## Core model (see src/store.jsx)
 - `wallMode`: `'photo' | 'blank'`. `wallImage` (dataURL) for photo; `wallColor` for blank.
 - `wallNaturalW/H`: wall size in px. `pixelsPerInch`: real scale (px per inch). Blank wall sets these from typed dimensions; photo wall gets `pixelsPerInch` via calibration.
+- Photo mode can select a working sub-region: `wallRegion` = `{x,y,w,h}` fractions of the photo + `wallRegionWIn/HIn` (real size). That region becomes the inches-origin `(0,0)` and the `wallWIn×wallHIn` working area. `workArea(state)` (src/utils.js) returns `{wallWIn,wallHIn,ox,oy}` (ox/oy = origin as photo fractions) and is the single source of truth for canvas origin, grid, dims, and auto-layout bounds. Reference-line / wall-width calibration clear `wallRegion`.
 - `units`: `'in' | 'cm'` toggle. Internal canonical unit is ALWAYS inches; convert only at UI edges (src/units.js).
 - `frameStyles[]`: `{id,name,image,imgW,imgH,outerW,outerH,openingFrac,count}`. `image` = solid frame photo. `openingFrac` = inner window as fractions (0..1) of the frame image. `outerW/H` in inches.
 - `photos[]`: `{id,image,w,h}` pool of user images.
@@ -33,6 +34,7 @@ Templates take frames (real sizes) + wall size, return per-frame `{xIn,yIn,rot}`
 - `Sidebar.jsx` — 4 steps: wall setup, frame styles (+ FrameStyleForm), photos, auto-layout. Assign photo = select frame on canvas then click a photo.
 - `WallCanvas.jsx` — Konva stage, calibration (reference line / wall width), placed frames, selection + Transformer rotate handle, floating action bar. Top-left view toolbar toggles a Figma-style reference `GridOverlay` and a blueprint `DimensionsOverlay`. Dims recompute live on `onDragMove` (frames dispatch position mid-drag).
 - `dimensions.js` — `buildDimensions()` returns per-frame blueprint measures: one horizontal (gap to nearest left neighbour, else offset from wall left) and one vertical (nearest above, else wall top), using rotation-aware bounding boxes; plus wall totals drawn in WallCanvas.
+- `WallAreaEditor.jsx` — drag a rectangle on the wall photo to pick the working area + enter its real W×H (sets scale + bounds). Opened via `ui.wallAreaOpen`.
 - `OpeningEditor.jsx` — drag inner-opening rectangle on a frame image.
 - `PhotoCropEditor.jsx` — pan/zoom/rotate a photo to fit an opening (WYSIWYG with the canvas).
 

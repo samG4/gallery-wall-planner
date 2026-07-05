@@ -1,7 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Stage, Layer, Image as KImage, Group, Rect, Line, Circle, Text, Label, Tag, Transformer } from 'react-konva'
 import { useStore } from '../store.jsx'
-import { useImage, photoPlacement } from '../utils.js'
+import { useImage, photoPlacement, workArea } from '../utils.js'
 import { toInches, fromInches, unitLabel, IN_PER_CM } from '../units.js'
 import { buildDimensions } from '../dimensions.js'
 
@@ -38,6 +38,14 @@ export default function WallCanvas({ ui, patchUi }) {
 
   const ppi = state.pixelsPerInch
   const inToDisp = (v) => v * ppi * displayScale // inches -> stage px
+
+  // Working wall area: inches-origin (stage px) + size. Region-aware for photo mode.
+  const area = workArea(state)
+  const originX = offX + area.ox * wallDispW
+  const originY = offY + area.oy * wallDispH
+  const wallWIn = area.wallWIn
+  const wallHIn = area.wallHIn
+  const hasRegion = state.wallMode === 'photo' && !!state.wallRegion
 
   // --- calibration reference line ---
   const [calA, setCalA] = useState(null)
@@ -80,7 +88,7 @@ export default function WallCanvas({ ui, patchUi }) {
     const dy = calB.y - calA.y
     const stagePx = Math.hypot(dx, dy)
     const naturalPx = stagePx / displayScale
-    dispatch({ type: 'set', payload: { pixelsPerInch: naturalPx / inches } })
+    dispatch({ type: 'set', payload: { pixelsPerInch: naturalPx / inches, wallRegion: null } })
     patchUi({ calibrating: false })
   }
 
@@ -109,13 +117,27 @@ export default function WallCanvas({ ui, patchUi }) {
             <KImage image={wallImg} x={offX} y={offY} width={wallDispW} height={wallDispH} name="wall" />
           )}
 
+          {/* selected wall-area outline (photo mode) */}
+          {hasRegion && (
+            <Rect
+              x={originX}
+              y={originY}
+              width={inToDisp(wallWIn)}
+              height={inToDisp(wallHIn)}
+              stroke="#3b82f6"
+              strokeWidth={2}
+              dash={[10, 6]}
+              listening={false}
+            />
+          )}
+
           {/* reference grid */}
-          {ui.showGrid && ppi && wallDispW > 0 && (
+          {ui.showGrid && ppi && wallWIn > 0 && (
             <GridOverlay
-              offX={offX}
-              offY={offY}
-              wallWIn={state.wallNaturalW / ppi}
-              wallHIn={state.wallNaturalH / ppi}
+              offX={originX}
+              offY={originY}
+              wallWIn={wallWIn}
+              wallHIn={wallHIn}
               inToDisp={inToDisp}
               units={state.units}
             />
@@ -132,8 +154,8 @@ export default function WallCanvas({ ui, patchUi }) {
                   placed={p}
                   style={s}
                   photo={state.photos.find((ph) => ph.id === p.photoId)}
-                  offX={offX}
-                  offY={offY}
+                  offX={originX}
+                  offY={originY}
                   inToDisp={inToDisp}
                   ppi={ppi}
                   displayScale={displayScale}
@@ -151,10 +173,10 @@ export default function WallCanvas({ ui, patchUi }) {
             <DimensionsOverlay
               placedFrames={state.placedFrames}
               frameStyles={state.frameStyles}
-              wallWIn={state.wallNaturalW / ppi}
-              wallHIn={state.wallNaturalH / ppi}
-              offX={offX}
-              offY={offY}
+              wallWIn={wallWIn}
+              wallHIn={wallHIn}
+              offX={originX}
+              offY={originY}
               inToDisp={inToDisp}
               units={state.units}
             />

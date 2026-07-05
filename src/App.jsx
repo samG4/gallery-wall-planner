@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar.jsx'
 import WallCanvas from './components/WallCanvas.jsx'
 import OpeningEditor from './components/OpeningEditor.jsx'
 import PhotoCropEditor from './components/PhotoCropEditor.jsx'
+import WallAreaEditor from './components/WallAreaEditor.jsx'
 
 function Shell() {
   const { state, dispatch, undo, redo, canUndo, canRedo } = useStore()
@@ -15,6 +16,7 @@ function Shell() {
     selectedPlacedId: null,
     showGrid: false, // Figma-style reference grid
     showDims: false, // blueprint dimension annotations
+    wallAreaOpen: false, // wall-area selector modal
   })
   const patchUi = (p) => setUi((u) => ({ ...u, ...p }))
 
@@ -86,6 +88,7 @@ function Shell() {
           onClose={() => patchUi({ cropPlacedId: null })}
         />
       )}
+      {ui.wallAreaOpen && <WallAreaEditor onClose={() => patchUi({ wallAreaOpen: false })} />}
     </div>
   )
 }

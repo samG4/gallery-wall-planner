@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useStore, uid } from '../store.jsx'
 import { readImageFile } from '../utils.js'
 import { toInches, fromInches, unitLabel } from '../units.js'
+import { workArea } from '../utils.js'
 import FrameStyleForm from './FrameStyleForm.jsx'
 import { LAYOUTS } from '../layouts.js'
 
@@ -21,6 +22,9 @@ export default function Sidebar({ ui, patchUi }) {
         wallNaturalW: w,
         wallNaturalH: h,
         pixelsPerInch: null,
+        wallRegion: null,
+        wallRegionWIn: 0,
+        wallRegionHIn: 0,
       },
     })
   }
@@ -60,7 +64,10 @@ export default function Sidebar({ ui, patchUi }) {
     const v = parseFloat(wallW)
     if (!v || !state.wallNaturalW) return
     const inches = toInches(v, units)
-    dispatch({ type: 'set', payload: { pixelsPerInch: state.wallNaturalW / inches } })
+    dispatch({
+      type: 'set',
+      payload: { pixelsPerInch: state.wallNaturalW / inches, wallRegion: null },
+    })
   }
 
   function addToWall(style) {
@@ -86,8 +93,7 @@ export default function Sidebar({ ui, patchUi }) {
       alert('Calibrate scale first (upload wall + set a reference).')
       return
     }
-    const wallW = state.wallNaturalW / state.pixelsPerInch
-    const wallH = state.wallNaturalH / state.pixelsPerInch
+    const { wallWIn: wallW, wallHIn: wallH } = workArea(state)
     const frames = state.placedFrames.map((p) => {
       const s = state.frameStyles.find((f) => f.id === p.styleId)
       return { id: p.id, wIn: s.outerW, hIn: s.outerH }
@@ -158,16 +164,27 @@ export default function Sidebar({ ui, patchUi }) {
           {state.wallMode === 'photo' && (
             <div className="calib">
               <p className="scale-status">
-                {scaleReady ? (
+                {state.wallRegion ? (
+                  <span className="ok">
+                    ✓ Wall area set ({fromInches(state.wallRegionWIn, units).toFixed(0)}×
+                    {fromInches(state.wallRegionHIn, units).toFixed(0)} {unitLabel(units)})
+                  </span>
+                ) : scaleReady ? (
                   <span className="ok">✓ Scale set ({state.pixelsPerInch.toFixed(1)} px/in)</span>
                 ) : (
-                  <span className="warn">⚠ Not calibrated — set scale below</span>
+                  <span className="warn">⚠ Not calibrated — set the wall area below</span>
                 )}
               </p>
 
               <p className="hint">
-                A) Draw a reference line — click a known object, drag a line, type its real length.
+                <strong>A) Select wall area (recommended)</strong> — drag a box over the wall,
+                enter its real size. Sets scale + where frames go, for a realistic mockup.
               </p>
+              <button onClick={() => patchUi({ wallAreaOpen: true })}>
+                {state.wallRegion ? 'Edit wall area' : 'Select wall area'}
+              </button>
+
+              <p className="hint">B) Or just calibrate scale — draw a reference line:</p>
               <button
                 className={ui.calibrating ? 'active' : ''}
                 onClick={() => patchUi({ calibrating: !ui.calibrating })}
@@ -175,7 +192,7 @@ export default function Sidebar({ ui, patchUi }) {
                 {ui.calibrating ? 'Cancel drawing' : 'Draw reference line'}
               </button>
 
-              <p className="hint">B) Or enter total wall width:</p>
+              <p className="hint">C) Or enter total wall width:</p>
               <div className="row">
                 <input
                   type="number"
