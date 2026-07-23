@@ -78,6 +78,14 @@ src/
 
 See [CLAUDE.md](CLAUDE.md) for a deeper tour of the data model and rendering math.
 
+## Support
+
+Everything I build is free and open source. If this tool saved you time or a few
+holes in the wall, a small tip funds the next one 🙂
+
+- ☕ [Support my work](https://samratgarai.com/support)
+- 💖 [GitHub Sponsors](https://github.com/sponsors/samG4)
+
 ## Contributing
 
 Issues and PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
