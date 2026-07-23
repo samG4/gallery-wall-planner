@@ -294,6 +294,18 @@ export default function Sidebar({ ui, patchUi }) {
           ))}
         </div>
       </section>
+
+      {/* Sticky support footer */}
+      <div className="support-bar">
+        <a
+          href="https://samratgarai.com/support"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          ☕ Support this tool
+        </a>
+        <span className="support-sub">Free &amp; open source · made by Samrat</span>
+      </div>
     </aside>
   )
 }

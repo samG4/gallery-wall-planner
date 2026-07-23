@@ -35,6 +35,32 @@ body {
   width: 340px; flex-shrink: 0; overflow-y: auto;
   background: var(--panel); border-right: 1px solid var(--border);
   padding: 12px;
+  display: flex; flex-direction: column;
+}
+.support-bar {
+  margin: auto -12px -12px;          /* push to bottom, hug sidebar edges */
+  position: sticky; bottom: -12px;   /* stay pinned while sidebar scrolls */
+  padding: 10px 12px;
+  background: var(--panel2);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -6px 16px rgba(0, 0, 0, 0.28);
+}
+.support-bar a {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  box-sizing: border-box; width: 100%;
+  background: var(--accent); color: #fff;
+  text-decoration: none; font-size: 13px; font-weight: 600;
+  padding: 10px; border-radius: 8px;
+  transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+}
+.support-bar a:hover {
+  filter: brightness(1.08); transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.45);
+}
+.support-bar a:active { transform: translateY(0); }
+.support-sub {
+  display: block; text-align: center;
+  color: var(--muted); font-size: 10.5px; margin-top: 6px;
 }
 .sidebar section { margin-bottom: 22px; }
 .sidebar h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin: 0 0 8px; }
