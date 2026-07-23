@@ -46,4 +46,3 @@ If a router is added later, add a catch-all rewrite to `/index.html`.
 - A cookie-consent banner IF you add ads or analytics that set cookies (GDPR/ePrivacy).
   Plain affiliate links do NOT require a consent banner, but DO require an affiliate
   disclosure line (FTC / Amazon Associates rule).
-- See MONETIZATION.md for the realistic revenue picture and requirements.

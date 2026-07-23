@@ -2,7 +2,31 @@
   "name": "gallery-wall-planner",
   "private": true,
   "version": "0.1.0",
+  "description": "Browser tool to mock up a gallery wall at real-world scale before hanging real frames.",
   "type": "module",
+  "license": "MIT",
+  "author": {
+    "name": "Samrat Garai",
+    "url": "https://samratgarai.com"
+  },
+  "homepage": "https://github.com/samG4/gallery-wall-planner#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/samG4/gallery-wall-planner.git"
+  },
+  "bugs": {
+    "url": "https://github.com/samG4/gallery-wall-planner/issues"
+  },
+  "keywords": [
+    "gallery-wall",
+    "picture-frames",
+    "wall-art",
+    "layout-planner",
+    "react",
+    "konva",
+    "canvas",
+    "vite"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vite build",

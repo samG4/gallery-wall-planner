@@ -4,3 +4,6 @@ dist/
 *.local
 .vite/
 npm-debug.log*
+
+# private business notes (kept local, not tracked)
+MONETIZATION.md
