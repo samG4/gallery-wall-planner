@@ -29,6 +29,19 @@ and layout live in `localStorage` on your machine.
 - **Undo / redo** — full history with sensible gesture coalescing
   (Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z or Ctrl+Y).
 
+## How it compares
+
+Good gallery-wall planners already exist — [GalleryPlanner](https://gallery-planner.com/),
+Suprtiles, and others let you lay out real frame sizes with your own photos. They're
+worth a look, and several of them do more than this tool (PDF drill guides, marking
+obstacles like a TV or sofa, larger layout libraries).
+
+Where this one differs: it's **fully free with nothing paywalled**, **open source
+(MIT)**, requires **no sign-up**, and runs **entirely in your browser** so your photos
+never leave your machine. It's deliberately small — set a wall, size some frames, drop
+in photos, arrange. If you want a no-friction, hackable tool rather than a freemium
+product, this is for you.
+
 ## Tech stack
 
 - React 18 + [Vite](https://vitejs.dev/) (plain JS/JSX, no TypeScript)
