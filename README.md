@@ -1,6 +1,8 @@
 # Gallery Wall Planner
 
-**[▶ Live demo](https://wall-planner.cheelo.workers.dev/)**
+**[▶ Live demo](https://wall-planner.cheelo.workers.dev/)** · free · open source · no sign-up
+
+![Gallery Wall Planner — plan your wall to scale with real frame sizes and your own photos](public/og.png)
 
 Mock up a gallery wall before you put a single nail in the drywall. Set your wall
 (a photo of it, or a blank sized canvas), add frame styles at their real dimensions,
