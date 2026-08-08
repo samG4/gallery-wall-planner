@@ -1,45 +1,112 @@
 # Gallery Wall Planner
 
 Browser tool to mock up a gallery wall before hanging real frames. User sets a wall
-(uploaded photo OR a blank sized canvas), adds frame styles at real dimensions, drops
-photos into frames, crops/rotates them, and arranges frames (drag, rotate, auto-layout).
-Everything renders at real-world scale so proportions match the physical wall.
+(uploaded photo OR a blank sized canvas), adds frames (standard sizes from the built-in
+library, or a photo of a real frame), drops photos into them, crops/rotates, arranges
+(drag, snap, rotate, auto-layout) around real obstacles, then prints a hanging guide with
+nail positions. Everything renders at real-world scale so proportions match the physical wall.
 
 ## Stack
 - React 18 + Vite (JS/JSX, no TypeScript).
 - react-konva / konva for the canvas (drag, rotate, clip, layering).
-- No backend. State persists to `localStorage` (key `gallery-wall-planner:v1`); images stored as dataURLs.
-- Undo/redo lives in `store.jsx`: `dispatch` is wrapped to record full-doc snapshots (structural sharing keeps them cheap). Rapid same-gesture actions coalesce into one step (`updatePlaced` per id, `set` per payload-keys, 600ms window) so a drag = one undo. Exposed as `undo/redo/canUndo/canRedo`; shortcuts Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z (or Ctrl+Y) in App.jsx. History is NOT persisted across reload.
+- No backend. State persists to `localStorage` (key `gallery-wall-planner:v2`, migrating
+  from `:v1`); images stored as dataURLs. Uploads are downscaled in `readImageFile`
+  (max 1600px, JPEG re-encode) to keep the ~5MB quota reachable; `StoreProvider` exposes
+  `storageFull` + `docBytes` so the UI can warn instead of losing work silently.
+- Undo/redo lives in `store.jsx`: `dispatch` is wrapped to record full-doc snapshots (structural sharing keeps them cheap). Rapid same-gesture actions coalesce into one step (`updatePlaced` per id, `updateManyPlaced` per id-set, `set`/`setSettings` per payload-keys, 600ms window) so a drag = one undo. Exposed as `undo/redo/canUndo/canRedo`; shortcuts in App.jsx. History is NOT persisted across reload.
+- PWA: `public/manifest.webmanifest` + `public/sw.js` (network-first HTML, cache-first
+  assets), registered from `main.jsx` in production only.
 - Run: `npm run dev` (port 5173). Build: `npm run build`.
 
 ## Core model (see src/store.jsx)
+- `docVersion` = 2. `migrateDoc()` upgrades any older/foreign doc and is used by both
+  localStorage load and project-file import.
 - `wallMode`: `'photo' | 'blank'`. `wallImage` (dataURL) for photo; `wallColor` for blank.
 - `wallNaturalW/H`: wall size in px. `pixelsPerInch`: real scale (px per inch). Blank wall sets these from typed dimensions; photo wall gets `pixelsPerInch` via calibration.
 - Photo mode can select a working sub-region: `wallRegion` = `{x,y,w,h}` fractions of the photo + `wallRegionWIn/HIn` (real size). That region becomes the inches-origin `(0,0)` and the `wallWIn×wallHIn` working area. `workArea(state)` (src/utils.js) returns `{wallWIn,wallHIn,ox,oy}` (ox/oy = origin as photo fractions) and is the single source of truth for canvas origin, grid, dims, and auto-layout bounds. Reference-line / wall-width calibration clear `wallRegion`.
 - `units`: `'in' | 'cm'` toggle. Internal canonical unit is ALWAYS inches; convert only at UI edges (src/units.js).
-- `frameStyles[]`: `{id,name,image,imgW,imgH,outerW,outerH,openingFrac,count}`. `image` = solid frame photo. `openingFrac` = inner window as fractions (0..1) of the frame image. `outerW/H` in inches.
+- `settings`: `{snap, gapIn, shadows, hangerDropIn, eyeLineIn, showEyeLine, wallHeightIn, floorOffsetIn}`.
+  `floorOffsetIn` = how far the working area's BOTTOM edge sits above the floor; combined
+  with `eyeLineIn` it converts between wall-area Y and height-above-floor.
+- `frameStyles[]` — two kinds, interchangeable downstream:
+  - `kind:'preset'` — DRAWN frame: `{artW,artH,matIn,frameWIn,mouldingKey,matKey}`; `outerW/H`
+    are derived (`presetOuter`) and stored so all existing maths keeps working.
+  - `kind:'image'` — photo of a real frame: `{image,imgW,imgH,openingFrac}` + typed `outerW/H`.
+  - Both: `{id,name,outerW,outerH,count,price}`.
+  - **Always use `openingOf(style)` (src/frames.js) to get the art window**, never
+    `style.openingFrac` — presets have no `openingFrac`. `styleReady(style)` = has an opening.
 - `photos[]`: `{id,image,w,h}` pool of user images.
 - `placedFrames[]`: `{id,styleId,xIn,yIn,rot,photoId,crop}`. `xIn/yIn` = top-left of the UNROTATED frame in inches. `rot` = frame rotation deg. `crop` = `{scale,ox,oy,rot}` for the photo inside the opening (ox/oy are box-size fractions; rot = photo rotation deg).
+- `obstacles[]`: `{id,kind,label,xIn,yIn,wIn,hIn}` — presets in src/obstacles.js.
 
 ## Rendering math (src/utils.js, WallCanvas.jsx)
-- `displayScale` = contain-fit of the wall into the stage. Inches -> stage px = `inches * pixelsPerInch * displayScale`.
+- `displayScale` = contain-fit of the wall into the stage. Inches -> content px = `inches * pixelsPerInch * displayScale`.
+- Everything is drawn inside one Konva `Group` carrying the view transform
+  (`{zoom, tx, ty}`), which is also `draggable` so dragging the background pans. Stroke
+  widths and label scales are divided by `zoom` to stay screen-constant. Pointer positions
+  for calibration come from `group.getRelativePointerPosition()`.
 - Frames rotate around their CENTER (Konva group offset = half-size); frame center is invariant under rotation, so `xIn = centerX - outerW/2` always.
-- Frame draws SOLID photo first, then the user photo clipped to `openingFrac`, drawn ON TOP of the opening (frame center is opaque, so photo must overlay it).
+- Preset frames draw moulding rect -> bevel stroke -> mat rect -> photo. Image frames draw
+  the SOLID photo first, then the user photo clipped to the opening ON TOP (the frame
+  centre is opaque, so the photo must overlay it).
+- `frameBoxIn(placed, style)` is the one rotation-aware bbox helper — used by dimensions,
+  snapping, align and hanging. Don't re-derive it.
 - `photoPlacement()` does rotation-aware cover-fit of a photo into an opening box; returns center + size + rot.
+- PNG export (`canvasApi.current.exportPNG()`) temporarily resets the view transform and
+  hides Transformers so the shot is exactly the wall rectangle at 1:1.
+
+## Snapping and alignment
+- `snap.js` `snapBox(box, others, opts)` returns `{dx, dy, guides}`. Candidates: frame and
+  obstacle edges/centres, wall edges/centre, the eye-line, and "one standard gap away".
+  Tolerance is passed in screen px converted to inches, so it feels the same at any zoom.
+  Alt bypasses it; `settings.snap` disables it.
+- `align.js` handles multi-select align / distribute / equal-gap and returns id->patch maps
+  fed to `updateManyPlaced` (one undo step).
 
 ## Layouts (src/layouts.js)
-Templates take frames (real sizes) + wall size, return per-frame `{xIn,yIn,rot}` by placing CENTERS. Set: row, eyeline (57in line), column, twoRows, grid, masonry, staircase, centerpiece, alternating (rotates alt frames 90). `footprint()` gives rotated bounding box for packing.
+Templates take frames (real sizes) + area size, return per-frame `{xIn,yIn,rot}` by placing
+CENTERS. Set: row, eyeline, column, twoRows, grid, masonry, salon, pyramid, staircase,
+centerpiece, alternating (rotates alt frames 90).
+- `usableArea(wallW, wallH, obstacles, clearance)` finds the tallest full-width band clear
+  of obstacles; `layoutInArea(fn, frames, area, gap, ctx, bounds)` runs a template inside it,
+  translates back to wall coordinates, and clamps the whole block so nothing lands off-wall.
+- `ctx.eyeY` carries the eye-line in wall coordinates (translated per-area).
+- `footprint()` gives rotated bounding box for packing.
+
+## Hanging guide (src/hanging.js, HangingGuide.jsx)
+`hangingPlan(state)` returns per-frame offsets from each wall edge, centre height above the
+floor, and hook coordinates (`hooksFor`: one hook, or two at the quarter points above 24in
+wide, `settings.hangerDropIn` below the frame top). `shoppingList(state)` totals quantities
+and optional prices. The modal prints via `@media print` rules in styles.css, which hide the
+app chrome and leave only `.print-sheet`. Rotated frames use the bbox top for the hook, which
+is an approximation — say so if it ever matters.
 
 ## UI (src/components)
-- `Sidebar.jsx` — 4 steps: wall setup, frame styles (+ FrameStyleForm), photos, auto-layout. Assign photo = select frame on canvas then click a photo.
-- `WallCanvas.jsx` — Konva stage, calibration (reference line / wall width), placed frames, selection + Transformer rotate handle, floating action bar. Top-left view toolbar toggles a Figma-style reference `GridOverlay` and a blueprint `DimensionsOverlay`. Dims recompute live on `onDragMove` (frames dispatch position mid-drag).
-- `dimensions.js` — `buildDimensions()` returns per-frame blueprint measures: one horizontal (gap to nearest left neighbour, else offset from wall left) and one vertical (nearest above, else wall top), using rotation-aware bounding boxes; plus wall totals drawn in WallCanvas.
+- `Sidebar.jsx` — tab host for the five panels (`PanelWall/Frames/Photos/Arrange/Export`).
+  Desktop shows a tab strip; mobile hides it and uses App's bottom tab bar + sheet.
+- `App.jsx` — shell, keyboard shortcuts (undo/redo, Cmd+D duplicate, arrows nudge,
+  Delete, Esc), mobile detection via `useMediaQuery('(max-width: 860px)')`, and the
+  bottom sheet. UI state (`selectedIds[]`, `selectedObstacleId`, `tab`, modals) is transient.
+- `WallCanvas.jsx` — Konva stage, zoom/pan, calibration, placed frames, obstacles,
+  selection + Transformer rotate handle, snap guides, grid / dimensions / eye-line overlays.
+  Dims recompute live on `onDragMove` (frames dispatch position mid-drag).
+- `SelectionBar.jsx` — floating inspector: numeric X/Y, rotation, crop, duplicate, delete;
+  align/distribute/equal-gap when several frames are selected; obstacle size/position when
+  an obstacle is selected.
+- `dimensions.js` — `buildDimensions()` returns per-frame blueprint measures: one horizontal (gap to nearest left neighbour, else offset from wall left) and one vertical (nearest above, else wall top); plus wall totals drawn in WallCanvas.
 - `WallAreaEditor.jsx` — drag a rectangle on the wall photo to pick the working area + enter its real W×H (sets scale + bounds). Opened via `ui.wallAreaOpen`.
-- `OpeningEditor.jsx` — drag inner-opening rectangle on a frame image.
+- `OpeningEditor.jsx` — drag inner-opening rectangle on a frame image (image-kind styles only).
 - `PhotoCropEditor.jsx` — pan/zoom/rotate a photo to fit an opening (WYSIWYG with the canvas).
+- `Toasts.jsx` — `useToast()(message, kind)`. Use it instead of `alert()`; alerts are a
+  modal wall on mobile.
 
 ## Conventions
 - Keep inches canonical; never store cm.
 - New per-frame or per-photo transforms go on `placed.crop` or `placed` and must be applied in BOTH the editor preview and WallCanvas so they stay WYSIWYG.
-- Modals: header + scrollable body + sticky footer with actions (no button reachable only by scrolling). Optimize for desktop (~14in) and tablet (8in+).
+- Anything that reads a frame's opening goes through `openingOf`; anything that reads a
+  frame's bbox goes through `frameBoxIn`.
+- Multi-frame changes use `updateManyPlaced` so they undo as one step.
+- Modals: header + scrollable body + sticky footer with actions (no button reachable only by scrolling). Full-screen below 860px.
+- Mobile: touch targets ≥38px, respect `env(safe-area-inset-*)`, keep the floating
+  selection bar above the tab bar.
 - After changing hooks in a Konva node, a HMR reload can wedge hook order; do a clean server restart if you see "change in order of Hooks".

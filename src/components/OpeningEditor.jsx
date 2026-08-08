@@ -13,8 +13,8 @@ export default function OpeningEditor({ styleId, onClose }) {
   if (!style) return null
 
   // Display size: fit within modal width AND height, keep aspect
-  const maxW = Math.min(820, window.innerWidth - 80)
-  const maxH = window.innerHeight - 210
+  const maxW = Math.max(220, Math.min(820, window.innerWidth - 40))
+  const maxH = Math.max(200, window.innerHeight - 230)
   const scale = Math.min(maxW / style.imgW, maxH / style.imgH)
   const dispW = style.imgW * scale
   const dispH = style.imgH * scale

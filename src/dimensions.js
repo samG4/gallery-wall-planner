@@ -1,12 +1,4 @@
-import { footprint } from './layouts.js'
-
-// Axis-aligned bounding box (inches) of a placed frame, accounting for rotation.
-function bbox(placed, style) {
-  const cx = placed.xIn + style.outerW / 2
-  const cy = placed.yIn + style.outerH / 2
-  const fp = footprint(style.outerW, style.outerH, placed.rot || 0)
-  return { x: cx - fp.w / 2, y: cy - fp.h / 2, w: fp.w, h: fp.h }
-}
+import { frameBoxIn } from './utils.js'
 
 const EPS = 0.05
 
@@ -18,7 +10,7 @@ export function buildDimensions(placedFrames, styleById, wallW, wallH) {
   const boxes = placedFrames
     .map((p) => {
       const s = styleById[p.styleId]
-      return s ? { id: p.id, ...bbox(p, s) } : null
+      return s ? { id: p.id, ...frameBoxIn(p, s) } : null
     })
     .filter(Boolean)
 
