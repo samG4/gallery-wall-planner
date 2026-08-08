@@ -101,13 +101,17 @@ export default function WallCanvas({ ui, patchUi, canvasApi }) {
   }
   const resetView = () => setView({ zoom: 1, tx: 0, ty: 0 })
 
+  // Scrolling pans; it never changes zoom. A trackpad pinch arrives as a wheel
+  // event with ctrlKey set (and Cmd is the keyboard equivalent), so that zooms.
   function onWheel(e) {
     e.evt.preventDefault()
-    const stage = stageRef.current
-    const p = stage?.getPointerPosition()
-    if (!p) return
-    const dir = e.evt.deltaY > 0 ? -1 : 1
-    zoomAbout(p, view.zoom * (1 + dir * 0.14), view)
+    if (e.evt.ctrlKey || e.evt.metaKey) {
+      const p = stageRef.current?.getPointerPosition()
+      if (!p) return
+      zoomAbout(p, view.zoom * Math.exp(-e.evt.deltaY * 0.01), view)
+      return
+    }
+    setView((v) => ({ ...v, tx: v.tx - e.evt.deltaX, ty: v.ty - e.evt.deltaY }))
   }
 
   function onTouchMove(e) {
@@ -554,6 +558,7 @@ export default function WallCanvas({ ui, patchUi, canvasApi }) {
             className={state.settings.snap ? 'active' : 'ghost'}
             onClick={() => dispatch({ type: 'setSettings', payload: { snap: !state.settings.snap } })}
             title="Snap to edges, centres and equal gaps (hold Alt to bypass)"
+            aria-pressed={state.settings.snap}
           >
             Snap
           </button>
@@ -561,7 +566,11 @@ export default function WallCanvas({ ui, patchUi, canvasApi }) {
           <button className="ghost" onClick={() => zoomBy(1 / 1.25)} title="Zoom out">
             −
           </button>
-          <button className="ghost zoomlabel" onClick={resetView} title="Reset zoom">
+          <button
+            className="ghost zoomlabel"
+            onClick={resetView}
+            title="Reset zoom and position (scroll pans; pinch or Cmd/Ctrl+scroll zooms)"
+          >
             {Math.round(view.zoom * 100)}%
           </button>
           <button className="ghost" onClick={() => zoomBy(1.25)} title="Zoom in">

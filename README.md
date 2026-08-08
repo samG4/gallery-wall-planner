@@ -47,7 +47,8 @@ and layout live in `localStorage` on your machine.
   (Shift for a bigger step), duplicate, delete.
 - **Obstacles** — block out the sofa, TV, window, door, switch or thermostat at real
   size. Auto-layouts keep clear of them and they appear in the hanging guide.
-- **Zoom & pan** — wheel or pinch to zoom, drag the background to pan.
+- **Zoom & pan** — scrolling pans (it never fights you by zooming); pinch, or
+  `Cmd/Ctrl`+scroll, or the toolbar buttons zoom. Dragging the background pans too.
 - **Overlays** — reference grid, live blueprint dimensions, and the 57in museum
   eye-line.
 - **Auto-layouts** — row, eye-line, column, two-rows, grid, masonry, salon, pyramid,
@@ -82,6 +83,8 @@ and layout live in `localStorage` on your machine.
 | Deselect | `Esc` |
 | Add to selection | `Shift`-click a frame |
 | Bypass snapping | Hold `Alt` while dragging |
+| Pan the canvas | Scroll, or drag the background |
+| Zoom the canvas | Pinch, or `Cmd/Ctrl`+scroll |
 
 ## How it compares
 

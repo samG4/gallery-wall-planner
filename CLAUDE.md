@@ -45,6 +45,8 @@ nail positions. Everything renders at real-world scale so proportions match the 
   (`{zoom, tx, ty}`), which is also `draggable` so dragging the background pans. Stroke
   widths and label scales are divided by `zoom` to stay screen-constant. Pointer positions
   for calibration come from `group.getRelativePointerPosition()`.
+- Wheel events PAN. Only a ctrl/meta wheel zooms — that is what a trackpad pinch
+  sends. Plain-scroll-to-zoom was removed because it hijacks normal scrolling.
 - Frames rotate around their CENTER (Konva group offset = half-size); frame center is invariant under rotation, so `xIn = centerX - outerW/2` always.
 - Preset frames draw moulding rect -> bevel stroke -> mat rect -> photo. Image frames draw
   the SOLID photo first, then the user photo clipped to the opening ON TOP (the frame

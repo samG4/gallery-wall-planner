@@ -129,7 +129,7 @@ label.mini { flex: 0 0 auto; }
 .calib { margin-top: 10px; }
 .scale-status { font-size: 12.5px; margin: 4px 0 10px; }
 .calib-method { background: var(--panel2); border: 1px solid var(--border); border-radius: 8px; padding: 9px; margin-bottom: 8px; }
-.calib-method strong { font-size: 12.5px; }
+.calib-method strong { display: block; font-size: 12.5px; margin-bottom: 7px; }
 
 .chips { display: flex; flex-wrap: wrap; gap: 5px; margin: 7px 0; }
 .chip {
