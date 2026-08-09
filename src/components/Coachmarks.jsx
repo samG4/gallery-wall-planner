@@ -24,42 +24,27 @@ const markSeen = () => {
   }
 }
 
+// Three steps, and every target is one that exists on a virgin run. Steps that
+// pointed at the view toolbar or the frame library used to leave a blank screen
+// for half a second, because neither is on the page until a wall exists.
+// The copy is deliberately plain: a first timer is reading it once, in a hurry.
 const STEPS = [
   {
     target: '[data-tour="steps"]',
-    title: 'Five steps, ending at the wall',
-    body: 'Wall, frames, photos, arrange, hang it. The last step prints a sheet with every nail position on it — that’s what this is for. The bar at the bottom always tells you the next step.',
+    title: 'How this works',
+    body: 'Five tabs, left to right: wall, frames, photos, arrange, hang it.',
     prepare: ({ patchUi }) => patchUi({ tab: 'wall', sheetOpen: false }),
   },
   {
     target: '[data-tour="panel"]',
-    title: 'Start with the wall',
-    body: 'Type a size, or upload a photo and drag a box over the real wall area. Everything after this is drawn at true scale.',
+    title: 'Set your wall',
+    body: 'Pick a size or upload a photo. Everything is drawn to real scale.',
     prepare: ({ patchUi, mobile }) => patchUi({ tab: 'wall', sheetOpen: mobile }),
   },
   {
-    target: '[data-tour="canvas"]',
-    title: 'This is your wall',
-    body: 'Drag a frame to move it, tap to select, shift-click to select more. Scroll to pan; pinch or Cmd/Ctrl+scroll to zoom.',
-    prepare: ({ patchUi }) => patchUi({ sheetOpen: false }),
-    place: 'center',
-  },
-  {
-    target: '[data-tour="viewtools"]',
-    title: 'Guides that keep you honest',
-    body: 'Reference grid, live measurements between frames, the eye-line, and snapping to edges, centres and equal gaps.',
-    prepare: ({ patchUi }) => patchUi({ sheetOpen: false }),
-  },
-  {
-    target: '[data-tour="frames"]',
-    title: 'Frames without the guesswork',
-    body: 'Pick a standard size, a moulding and a mat — the frame is drawn at its real outer size. No photo of a frame needed.',
-    prepare: ({ patchUi, mobile }) => patchUi({ tab: 'frames', sheetOpen: mobile }),
-  },
-  {
     target: '[data-tour="export"]',
-    title: 'This is the point of it',
-    body: 'The hanging guide prints every nail position, measured from the wall edges and up from the floor.',
+    title: 'Hang it',
+    body: 'The last tab prints where each nail goes.',
     prepare: ({ patchUi, mobile }) => patchUi({ tab: 'export', sheetOpen: mobile }),
   },
 ]
@@ -67,6 +52,10 @@ const STEPS = [
 export default function Coachmarks({ patchUi, mobile, onClose }) {
   const [i, setI] = useState(0)
   const [rect, setRect] = useState(null)
+  // Whether the card fits below the spotlight depends on how tall it actually
+  // is, and the copy differs per step — measure rather than assume.
+  const tipRef = useRef(null)
+  const [tipH, setTipH] = useState(170)
 
   const step = STEPS[i]
 
@@ -90,9 +79,11 @@ export default function Coachmarks({ patchUi, mobile, onClose }) {
     return true
   }, [i])
 
+  // Land on the first step of the path, not on whichever tab the last card
+  // happened to open.
   const finish = useCallback(() => {
     markSeen()
-    patchUi({ sheetOpen: false })
+    patchUi({ tab: 'wall', sheetOpen: false })
     onClose()
   }, [onClose, patchUi])
 
@@ -160,8 +151,8 @@ export default function Coachmarks({ patchUi, mobile, onClose }) {
     tipStyle = { left: (vw - TIP_W) / 2, top: Math.max(70, vh / 2 - 90), width: TIP_W }
   } else {
     const below = rect.top + rect.height + PAD + 12
-    const wantAbove = below + 190 > vh
-    const top = wantAbove ? Math.max(12, rect.top - PAD - 12 - 190) : below
+    const wantAbove = below + tipH > vh
+    const top = wantAbove ? Math.max(12, rect.top - PAD - 12 - tipH) : below
     const left = Math.min(
       Math.max(12, rect.left + rect.width / 2 - TIP_W / 2),
       vw - TIP_W - 12
@@ -185,7 +176,15 @@ export default function Coachmarks({ patchUi, mobile, onClose }) {
         <div className="coach-dim" />
       )}
 
-      <div className="coach-tip" style={tipStyle}>
+      <div
+        className="coach-tip"
+        ref={(el) => {
+          tipRef.current = el
+          const h = el?.offsetHeight
+          if (h && h !== tipH) setTipH(h)
+        }}
+        style={tipStyle}
+      >
         <span className="coach-count">
           {i + 1} of {STEPS.length}
         </span>

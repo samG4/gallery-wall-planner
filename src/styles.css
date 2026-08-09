@@ -159,6 +159,19 @@ body {
   display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
   margin-top: 16px; pointer-events: auto;
 }
+/* Once a wall exists the prompt can't sit over it — the user is about to drag a
+   box on that photo. Same copy as the Next bar, parked at the bottom. */
+.empty-state.compact { align-items: flex-end; justify-content: center; padding: 16px; }
+.empty-state.compact .prompt-card {
+  display: flex; align-items: center; gap: 10px; text-align: left;
+  background: var(--panel); border-radius: 12px; padding: 9px 10px 9px 13px;
+  box-shadow: var(--shadow-lg), inset 0 0 0 1px var(--border);
+  pointer-events: auto; max-width: 420px;
+}
+.empty-state.compact .prompt-card strong { font-size: 13px; color: var(--text); }
+.empty-state.compact .prompt-card span { font-size: 11.5px; line-height: 1.35; }
+.empty-state.compact .prompt-card > div { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.empty-state.compact .prompt-card button { flex: 0 0 auto; }
 button.ghost-outline {
   background: var(--panel); color: var(--text);
   box-shadow: inset 0 0 0 1px var(--border);
@@ -242,6 +255,23 @@ label.mini { flex: 0 0 auto; }
   padding: 11px; margin-bottom: 10px;
 }
 .calib-method strong { display: block; font-size: 12.5px; margin-bottom: 7px; }
+
+/* Everything a normal user doesn't need goes behind one of these, so each panel
+   shows one decision at a time. */
+.more { margin-top: 10px; }
+.more > summary {
+  list-style: none; cursor: pointer; color: var(--muted);
+  font-size: 12px; font-weight: 600; padding: 7px 0;
+  display: flex; align-items: center; gap: 6px;
+}
+.more > summary::-webkit-details-marker { display: none; }
+.more > summary::before {
+  content: '›'; display: inline-block; font-size: 14px; line-height: 1;
+  transition: transform var(--dur-1) var(--ease);
+}
+.more[open] > summary::before { transform: rotate(90deg); }
+.more > summary:hover { color: var(--text); }
+.more-body { padding-top: 2px; }
 
 /* section heading + ⓘ tooltip. The rule under the heading runs the full width of
    the card, so the negative margins cancel the card's padding. */
@@ -371,10 +401,6 @@ label.mini { flex: 0 0 auto; }
 }
 .calib-overlay .row { margin-top: 0; }
 .calib-overlay input { width: 84px; }
-.warn-overlay {
-  border-color: var(--ink); background: var(--panel); color: var(--text);
-  top: auto; bottom: 12px; font-weight: 600;
-}
 
 .view-toolbar {
   position: absolute; top: 12px; left: 12px; display: flex; gap: 4px; z-index: 5;
@@ -568,6 +594,14 @@ label.mini { flex: 0 0 auto; }
   button, .filebtn { min-height: 38px; }
   .style-btns button { min-height: 32px; }
   .swatch { width: 26px; height: 26px; }
+  /* Round fixed-size controls: min-height beats height, so without these the
+     circles stretch into ovals. */
+  /* The Next bar already floats over the canvas on mobile — two copies of the
+     same sentence is worse than none. */
+  .empty-state.compact { display: none; }
+  .infobtn { min-height: 18px; }
+  .photo-cell .x { min-height: 22px; }
+  .swatch { min-height: 26px; }
 }
 
 @media (max-width: 420px) {

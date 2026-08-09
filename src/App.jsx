@@ -133,7 +133,7 @@ function Shell() {
       visited: { ...ui.visited, [key]: true },
     })
 
-  const done = stepsDone(state)
+  const done = stepsDone(state, ui.visited)
 
   return (
     <div className={`app${mobile ? ' mobile' : ''}`}>

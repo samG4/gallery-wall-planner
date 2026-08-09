@@ -27,6 +27,9 @@ export default function PanelWall({ ui, patchUi }) {
   const [blankW, setBlankW] = useState(() => String(dispIn(48, units)))
   const [blankH, setBlankH] = useState(() => String(dispIn(36, units)))
   const [wallW, setWallW] = useState('')
+  // On the photo path the blank-wall controls are hidden — but the user has to
+  // be able to change their mind, so this re-reveals them.
+  const [showBlank, setShowBlank] = useState(false)
 
   async function onWallUpload(e) {
     const file = e.target.files?.[0]
@@ -46,7 +49,7 @@ export default function PanelWall({ ui, patchUi }) {
       },
     })
     e.target.value = ''
-    toast('Wall photo added — now set the wall area so the scale is real.', 'info')
+    toast('Wall photo added. Now select the wall area to set the scale.', 'info')
   }
 
   function makeBlankWall(wOverride, hOverride, floorIn) {
@@ -89,6 +92,12 @@ export default function PanelWall({ ui, patchUi }) {
   const eyeMaxIn = hasWall ? state.settings.floorOffsetIn + wallHIn : Number.MAX_SAFE_INTEGER
   const disp = (inches) => dispIn(inches, units)
 
+  // One decision at a time: the two ways of making a wall are mutually
+  // exclusive, so only the one you're on is on screen.
+  const mode = state.wallMode || 'none'
+  const isPhoto = mode === 'photo'
+  const showBlankControls = !isPhoto || showBlank
+
   return (
     <section>
       {!state.wallMode && (
@@ -103,71 +112,14 @@ export default function PanelWall({ ui, patchUi }) {
         </button>
       )}
 
-      {/* Blank canvas — no photo needed, scale is exact from dimensions */}
       <div className="calib-method">
         <SectionTitle
           title="Wall area"
-          info="The patch of wall you'll actually hang in — not the whole room wall. No photo needed: give it a size and a colour and start arranging. The presets also set how high off the floor that patch starts."
+          info="The patch of wall you'll actually hang in, not the whole room wall. Pick a size and start arranging, or upload a photo of the wall and mark the area on it. The presets also set how high off the floor that patch starts."
         />
-        <div className="chips">
-          {WALL_PRESETS.map((p) => (
-            <button
-              key={p.label}
-              className="chip"
-              title={`${disp(p.w)}×${disp(p.h)} ${unitLabel(units)}, starting ${disp(
-                p.floor
-              )} ${unitLabel(units)} above the floor`}
-              onClick={() => {
-                setBlankW(String(disp(p.w)))
-                setBlankH(String(disp(p.h)))
-                makeBlankWall(p.w, p.h, p.floor)
-              }}
-            >
-              {p.label}{' '}
-              <span className="chip-dim">
-                {disp(p.w)}×{disp(p.h)}
-              </span>
-            </button>
-          ))}
-        </div>
-        <div className="row">
-          <input
-            type="number"
-            step={stepFor(units)}
-            aria-label={`Wall width in ${unitLabel(units)}`}
-            placeholder={`W (${unitLabel(units)})`}
-            value={blankW}
-            onChange={(e) => setBlankW(e.target.value)}
-          />
-          <input
-            type="number"
-            step={stepFor(units)}
-            aria-label={`Wall height in ${unitLabel(units)}`}
-            placeholder={`H (${unitLabel(units)})`}
-            value={blankH}
-            onChange={(e) => setBlankH(e.target.value)}
-          />
-          <input
-            type="color"
-            className="colorpick"
-            value={state.wallColor}
-            onChange={(e) => dispatch({ type: 'set', payload: { wallColor: e.target.value } })}
-            title="Wall colour"
-            aria-label="Wall colour"
-          />
-        </div>
-        <button className="cta spaced" onClick={() => makeBlankWall()}>
-          {state.wallMode === 'blank' ? 'Update blank wall' : 'Use blank wall'}
-        </button>
-        <label
-          className="filebtn secondary"
-          title="Photograph the wall straight on, then mark a rectangle you know the real size of — that sets the scale."
-        >
-          {state.wallMode === 'photo' ? 'Replace wall photo' : 'Or upload a wall photo'}
-          <input type="file" accept="image/*" onChange={onWallUpload} hidden />
-        </label>
 
-        {state.wallMode === 'photo' && (
+        {/* Photo path: the only thing that matters is setting the scale. */}
+        {isPhoto && (
           <div className="calib">
             <p className="scale-status">
               {state.wallRegion ? (
@@ -178,95 +130,207 @@ export default function PanelWall({ ui, patchUi }) {
               ) : scaleReady ? (
                 <span className="ok">✓ Scale set ({state.pixelsPerInch.toFixed(1)} px/in)</span>
               ) : (
-                <span className="warn">⚠ Not calibrated — set the wall area below</span>
+                <span className="warn">⚠ Not set up yet</span>
               )}
             </p>
 
-            <p className="hint">
-              <strong>A) Select wall area (recommended)</strong> — drag a box over the wall, enter
-              its real size. Sets scale + where frames go, for a realistic mockup.
-            </p>
-            <button onClick={() => patchUi({ wallAreaOpen: true })}>
+            <button className="cta" onClick={() => patchUi({ wallAreaOpen: true })}>
               {state.wallRegion ? 'Edit wall area' : 'Select wall area'}
             </button>
+            <p className="hint">Drag a box over the wall, then type its real size.</p>
 
-            <p className="hint">B) Or just calibrate scale — draw a reference line:</p>
-            <button
-              className={ui.calibrating ? 'active' : ''}
-              onClick={() => patchUi({ calibrating: !ui.calibrating })}
-            >
-              {ui.calibrating ? 'Cancel drawing' : 'Draw reference line'}
-            </button>
+            {/* Two rarer ways to set the scale. Neither is worth a first timer's
+                attention, so they don't get any until asked for. */}
+            <details className="more">
+              <summary>Other ways to set the scale</summary>
+              <div className="more-body">
+                <p className="hint">Draw a line across something you know the length of:</p>
+                <button
+                  className={ui.calibrating ? 'active' : ''}
+                  onClick={() => patchUi({ calibrating: !ui.calibrating })}
+                >
+                  {ui.calibrating ? 'Cancel drawing' : 'Draw reference line'}
+                </button>
 
-            <p className="hint">C) Or enter total wall width:</p>
+                <p className="hint">Or enter the total wall width:</p>
+                <div className="row">
+                  <input
+                    type="number"
+                    step={stepFor(units)}
+                    placeholder={`width (${unitLabel(units)})`}
+                    aria-label={`Total wall width in ${unitLabel(units)}`}
+                    value={wallW}
+                    onChange={(e) => setWallW(e.target.value)}
+                  />
+                  <button onClick={calibrateByWallWidth}>Set</button>
+                </div>
+              </div>
+            </details>
+          </div>
+        )}
+
+        {/* Blank path: presets first, because one tap beats typing two numbers. */}
+        {showBlankControls && (
+          <>
+            <div className="chips">
+              {WALL_PRESETS.map((p) => (
+                <button
+                  key={p.label}
+                  className="chip"
+                  title={`${disp(p.w)}×${disp(p.h)} ${unitLabel(units)}, starting ${disp(
+                    p.floor
+                  )} ${unitLabel(units)} above the floor`}
+                  onClick={() => {
+                    setBlankW(String(disp(p.w)))
+                    setBlankH(String(disp(p.h)))
+                    setShowBlank(false)
+                    makeBlankWall(p.w, p.h, p.floor)
+                  }}
+                >
+                  {p.label}{' '}
+                  <span className="chip-dim">
+                    {disp(p.w)}×{disp(p.h)}
+                  </span>
+                </button>
+              ))}
+            </div>
             <div className="row">
               <input
                 type="number"
                 step={stepFor(units)}
-                placeholder={`width (${unitLabel(units)})`}
-                aria-label={`Total wall width in ${unitLabel(units)}`}
-                value={wallW}
-                onChange={(e) => setWallW(e.target.value)}
+                aria-label={`Wall width in ${unitLabel(units)}`}
+                placeholder={`W (${unitLabel(units)})`}
+                value={blankW}
+                onChange={(e) => setBlankW(e.target.value)}
               />
-              <button onClick={calibrateByWallWidth}>Set</button>
+              <input
+                type="number"
+                step={stepFor(units)}
+                aria-label={`Wall height in ${unitLabel(units)}`}
+                placeholder={`H (${unitLabel(units)})`}
+                value={blankH}
+                onChange={(e) => setBlankH(e.target.value)}
+              />
             </div>
-          </div>
+            <button
+              className="cta spaced"
+              onClick={() => {
+                setShowBlank(false)
+                makeBlankWall()
+              }}
+            >
+              {mode === 'blank' ? 'Update blank wall' : 'Use blank wall'}
+            </button>
+            {/* Colour is a nice-to-have; it only earns a slot once a wall exists. */}
+            {mode === 'blank' && (
+              <div className="row">
+                <label className="mini">Wall colour</label>
+                <input
+                  type="color"
+                  className="colorpick"
+                  value={state.wallColor}
+                  onChange={(e) =>
+                    dispatch({ type: 'set', payload: { wallColor: e.target.value } })
+                  }
+                  title="Wall colour"
+                  aria-label="Wall colour"
+                />
+              </div>
+            )}
+          </>
+        )}
+
+        {/* The way out of whichever path you're on. */}
+        {isPhoto ? (
+          <>
+            <label
+              className="filebtn secondary"
+              title="Photograph the wall straight on, then mark a rectangle you know the real size of."
+            >
+              Replace wall photo
+              <input type="file" accept="image/*" onChange={onWallUpload} hidden />
+            </label>
+            {!showBlank && (
+              <button className="linkbtn" onClick={() => setShowBlank(true)}>
+                Use a blank wall instead
+              </button>
+            )}
+          </>
+        ) : (
+          <label
+            className="filebtn secondary"
+            title="Photograph the wall straight on, then mark a rectangle you know the real size of."
+          >
+            Or upload a wall photo
+            <input type="file" accept="image/*" onChange={onWallUpload} hidden />
+          </label>
         )}
       </div>
 
-      {/* Height references — these drive the eye-line and the hanging guide */}
-      <div className="calib-method" data-tour="heights">
-        <SectionTitle
-          title="Heights"
-          info="Everything vertical is measured from the floor. Eye-line is where picture centres sit — galleries use 57in. Bottom edge is how far the bottom of your wall area sits off the floor, which is what turns wall positions into real nail heights."
-        />
-        <div className="row">
-          <label className="mini">Eye-line</label>
-          <input
-            type="number"
-            step={stepFor(units)}
-            min={disp(eyeMinIn)}
-            max={disp(eyeMaxIn)}
-            value={disp(state.settings.eyeLineIn)}
-            onChange={(e) => {
-              const v = toInches(parseFloat(e.target.value) || 0, units)
-              setCfg({ eyeLineIn: clamp(v, eyeMinIn, eyeMaxIn) })
-            }}
-            aria-label="Eye-line height from floor"
+      {/* Height references — these drive the eye-line and the hanging guide.
+          The presets already set both, so a normal user never opens this. */}
+      {mode !== 'none' && (
+        <div className="calib-method">
+          <SectionTitle
+            title="Heights"
+            info="Everything vertical is measured from the floor. Eye-line is where picture centres sit — galleries use 57in. Bottom edge is how far the bottom of your wall area sits off the floor, which is what turns wall positions into real nail heights."
           />
-          <span className="mini">{unitLabel(units)} from floor</span>
+          <details className="more">
+            <summary>Eye-line and floor height (optional)</summary>
+            <div className="more-body">
+              <div className="row">
+                <label className="mini">Eye-line</label>
+                <input
+                  type="number"
+                  step={stepFor(units)}
+                  min={disp(eyeMinIn)}
+                  max={disp(eyeMaxIn)}
+                  value={disp(state.settings.eyeLineIn)}
+                  onChange={(e) => {
+                    const v = toInches(parseFloat(e.target.value) || 0, units)
+                    setCfg({ eyeLineIn: clamp(v, eyeMinIn, eyeMaxIn) })
+                  }}
+                  aria-label="Eye-line height from floor"
+                />
+                <span className="mini">{unitLabel(units)} from floor</span>
+              </div>
+              {hasWall && (
+                <p className="hint">
+                  Must sit on the wall: {disp(eyeMinIn)}–{disp(eyeMaxIn)} {unitLabel(units)} from
+                  the floor.
+                </p>
+              )}
+              <div className="row">
+                <label className="mini">Bottom edge</label>
+                <input
+                  type="number"
+                  step={stepFor(units)}
+                  min="0"
+                  value={disp(state.settings.floorOffsetIn)}
+                  onChange={(e) => {
+                    const floorOffsetIn = Math.max(
+                      0,
+                      toInches(parseFloat(e.target.value) || 0, units)
+                    )
+                    // Moving the wall up or down can strand the eye-line off it; keep it on.
+                    const patch = { floorOffsetIn }
+                    if (hasWall) {
+                      patch.eyeLineIn = clamp(
+                        state.settings.eyeLineIn,
+                        floorOffsetIn,
+                        floorOffsetIn + wallHIn
+                      )
+                    }
+                    setCfg(patch)
+                  }}
+                  aria-label="Height of the working area's bottom edge above the floor"
+                />
+                <span className="mini">{unitLabel(units)} up from the floor</span>
+              </div>
+            </div>
+          </details>
         </div>
-        {hasWall && (
-          <p className="hint">
-            Must sit on the wall: {disp(eyeMinIn)}–{disp(eyeMaxIn)} {unitLabel(units)} from the
-            floor.
-          </p>
-        )}
-        <div className="row">
-          <label className="mini">Bottom edge</label>
-          <input
-            type="number"
-            step={stepFor(units)}
-            min="0"
-            value={disp(state.settings.floorOffsetIn)}
-            onChange={(e) => {
-              const floorOffsetIn = Math.max(0, toInches(parseFloat(e.target.value) || 0, units))
-              // Moving the wall up or down can strand the eye-line off it; keep it on.
-              const patch = { floorOffsetIn }
-              if (hasWall) {
-                patch.eyeLineIn = clamp(
-                  state.settings.eyeLineIn,
-                  floorOffsetIn,
-                  floorOffsetIn + wallHIn
-                )
-              }
-              setCfg(patch)
-            }}
-            aria-label="Height of the working area's bottom edge above the floor"
-          />
-          <span className="mini">{unitLabel(units)} up from the floor</span>
-        </div>
-      </div>
+      )}
     </section>
   )
 }
