@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useStore, uid } from '../store.jsx'
-import { fromInches, toInches, unitLabel } from '../units.js'
+import { disp, toInches, unitLabel } from '../units.js'
 import {
   MOULDINGS,
   MATS,
@@ -24,7 +24,7 @@ export default function PanelFrames({ ui, patchUi }) {
   const [editing, setEditing] = useState(null)
   const [custom, setCustom] = useState(false)
 
-  const fmt = (inches) => Math.round(fromInches(inches, units) * 10) / 10
+  const fmt = (inches) => disp(inches, units)
 
   function addToWall(style) {
     if (!state.pixelsPerInch) {
@@ -56,8 +56,6 @@ export default function PanelFrames({ ui, patchUi }) {
 
   return (
     <section>
-      <h2>2 · Frames</h2>
-
       <FrameLibrary onPlace={addToWall} />
 
       <div className="calib-method">
@@ -163,7 +161,7 @@ export default function PanelFrames({ ui, patchUi }) {
                           <label className="mini">Art</label>
                           <input
                             type="number"
-                            step="0.5"
+                            step={units === 'm' ? 0.01 : 0.5}
                             value={fmt(s.artW)}
                             aria-label={`Art width in ${u}`}
                             onChange={(e) =>
@@ -179,7 +177,7 @@ export default function PanelFrames({ ui, patchUi }) {
                           <span className="mini">×</span>
                           <input
                             type="number"
-                            step="0.5"
+                            step={units === 'm' ? 0.01 : 0.5}
                             value={fmt(s.artH)}
                             aria-label={`Art height in ${u}`}
                             onChange={(e) =>
@@ -275,7 +273,7 @@ export default function PanelFrames({ ui, patchUi }) {
                         <label className="mini">Outer</label>
                         <input
                           type="number"
-                          step="0.5"
+                          step={units === 'm' ? 0.01 : 0.5}
                           value={fmt(s.outerW)}
                           aria-label={`Outer width in ${u}`}
                           onChange={(e) =>
@@ -289,7 +287,7 @@ export default function PanelFrames({ ui, patchUi }) {
                         <span className="mini">×</span>
                         <input
                           type="number"
-                          step="0.5"
+                          step={units === 'm' ? 0.01 : 0.5}
                           value={fmt(s.outerH)}
                           aria-label={`Outer height in ${u}`}
                           onChange={(e) =>

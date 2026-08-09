@@ -14,18 +14,56 @@ import {
 } from 'react-konva'
 import { useStore } from '../store.jsx'
 import { useImage, photoPlacement, workArea, frameBoxIn, clamp } from '../utils.js'
-import { toInches, fromInches, unitLabel, IN_PER_CM } from '../units.js'
+import { toInches, disp, stepFor, unitLabel, IN_PER_M } from '../units.js'
 import { buildDimensions } from '../dimensions.js'
 import { openingOf, moulding as mouldingOf, mat as matOf } from '../frames.js'
-import { obstacleKind } from '../obstacles.js'
+import { obstacleKind, obstacleRect } from '../obstacles.js'
 import { snapBox } from '../snap.js'
 import { CANVAS } from '../theme.js'
+import { demoDoc } from '../project.js'
+import { useToast } from './Toasts.jsx'
+
+// Guides are drawn over a wall that might be a dark photo or a white blank, so
+// every line goes down twice: a white halo, then the black stroke on top.
+function HaloLine({ points, zoom, strokeW = 1.4, dash, stroke = CANVAS.dim }) {
+  return (
+    <>
+      <Line
+        points={points}
+        stroke={CANVAS.halo}
+        strokeWidth={(strokeW + 2.4) / zoom}
+        dash={dash}
+        lineCap="round"
+        listening={false}
+      />
+      <Line
+        points={points}
+        stroke={stroke}
+        strokeWidth={strokeW / zoom}
+        dash={dash}
+        lineCap="round"
+        listening={false}
+      />
+    </>
+  )
+}
+
+// `strokeW`, not `width` — Rect already owns `width`.
+function HaloRect({ zoom, strokeW = 2, dash, stroke = CANVAS.selection, ...rect }) {
+  return (
+    <>
+      <Rect {...rect} stroke={CANVAS.halo} strokeWidth={(strokeW + 2.4) / zoom} dash={dash} listening={false} />
+      <Rect {...rect} stroke={stroke} strokeWidth={strokeW / zoom} dash={dash} listening={false} />
+    </>
+  )
+}
 
 const MIN_ZOOM = 0.25
 const MAX_ZOOM = 8
 
 export default function WallCanvas({ ui, patchUi, canvasApi }) {
   const { state, dispatch } = useStore()
+  const toast = useToast()
   const wrapRef = useRef(null)
   const stageRef = useRef(null)
   const contentRef = useRef(null)
@@ -155,11 +193,12 @@ export default function WallCanvas({ ui, patchUi, canvasApi }) {
       }
       for (const o of state.obstacles) {
         if (excludeIds.includes(o.id)) continue
-        out.push({ x: o.xIn, y: o.yIn, w: o.wIn, h: o.hIn })
+        const r = obstacleRect(o, wallHIn, state.settings.floorOffsetIn)
+        if (r) out.push(r)
       }
       return out
     },
-    [state.placedFrames, state.obstacles, styleById]
+    [state.placedFrames, state.obstacles, styleById, wallHIn, state.settings.floorOffsetIn]
   )
 
   const snapFor = useCallback(
@@ -318,8 +357,23 @@ export default function WallCanvas({ ui, patchUi, canvasApi }) {
           <div>
             <p className="empty-title">Start with your wall</p>
             <p className="empty-sub">
-              Pick a blank size or upload a photo of the wall — then add frames at real size.
+              Give it a size, add frames at their real size, arrange them around the sofa — then
+              print a sheet with every nail position marked.
             </p>
+            <div className="empty-actions">
+              <button onClick={() => patchUi({ tab: 'wall', sheetOpen: true })}>
+                Pick a wall size
+              </button>
+              <button
+                className="ghost-outline"
+                onClick={() => {
+                  dispatch({ type: 'load', payload: demoDoc() })
+                  toast('Loaded a demo wall — drag frames around, then reset when done.', 'ok')
+                }}
+              >
+                ✨ Try a demo wall
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -376,15 +430,14 @@ export default function WallCanvas({ ui, patchUi, canvasApi }) {
 
             {/* selected wall-area outline (photo mode) */}
             {hasRegion && (
-              <Rect
+              <HaloRect
                 x={originX}
                 y={originY}
                 width={inToDisp(wallWIn)}
                 height={inToDisp(wallHIn)}
                 stroke={CANVAS.region}
-                strokeWidth={2 / view.zoom}
+                zoom={view.zoom}
                 dash={[10 / view.zoom, 6 / view.zoom]}
-                listening={false}
               />
             )}
 
@@ -404,7 +457,7 @@ export default function WallCanvas({ ui, patchUi, canvasApi }) {
             {/* museum eye-line */}
             {state.settings.showEyeLine && ppi && eyeLineY != null && (
               <Group listening={false}>
-                <Line
+                <HaloLine
                   points={[
                     originX,
                     originY + inToDisp(eyeLineY),
@@ -412,7 +465,8 @@ export default function WallCanvas({ ui, patchUi, canvasApi }) {
                     originY + inToDisp(eyeLineY),
                   ]}
                   stroke={CANVAS.eyeLine}
-                  strokeWidth={1.5 / view.zoom}
+                  zoom={view.zoom}
+                  strokeW={1.5}
                   dash={[12 / view.zoom, 8 / view.zoom]}
                 />
                 <Label x={originX + 4} y={originY + inToDisp(eyeLineY) - 18 / view.zoom} scaleX={1 / view.zoom} scaleY={1 / view.zoom}>
@@ -427,32 +481,46 @@ export default function WallCanvas({ ui, patchUi, canvasApi }) {
               </Group>
             )}
 
-            {/* obstacles (TV, sofa, switch…) */}
+            {/* obstacles (sofa, TV, switch…) */}
             {ppi &&
-              state.obstacles.map((o) => (
-                <ObstacleNode
-                  key={o.id}
-                  obstacle={o}
-                  offX={originX}
-                  offY={originY}
-                  inToDisp={inToDisp}
-                  ppi={ppi}
-                  displayScale={displayScale}
-                  zoom={view.zoom}
-                  units={state.units}
-                  selected={ui.selectedObstacleId === o.id}
-                  onSelect={() => patchUi({ selectedObstacleId: o.id, selectedIds: [] })}
-                  onDragMove={(xIn, yIn, alt) => {
-                    const { dx, dy } = snapFor({ x: xIn, y: yIn, w: o.wIn, h: o.hIn }, [o.id], alt)
-                    dispatch({
-                      type: 'updateObstacle',
-                      id: o.id,
-                      patch: { xIn: xIn + dx, yIn: yIn + dy },
-                    })
-                  }}
-                  onDragEnd={() => setGuides([])}
-                />
-              ))}
+              state.obstacles.map((o) => {
+                const r = obstacleRect(o, wallHIn, state.settings.floorOffsetIn)
+                return (
+                  <ObstacleNode
+                    key={o.id}
+                    obstacle={o}
+                    rect={r}
+                    wallWIn={wallWIn}
+                    wallHIn={wallHIn}
+                    offX={originX}
+                    offY={originY}
+                    inToDisp={inToDisp}
+                    ppi={ppi}
+                    displayScale={displayScale}
+                    zoom={view.zoom}
+                    units={state.units}
+                    selected={ui.selectedObstacleId === o.id}
+                    onSelect={() => patchUi({ selectedObstacleId: o.id, selectedIds: [] })}
+                    onDragMove={(xIn, yIn, alt) => {
+                      if (!r) return
+                      const { dx, dy } = snapFor({ x: xIn, y: yIn, w: r.w, h: r.h }, [o.id], alt)
+                      // Dragging sideways moves it along the wall; dragging up or
+                      // down changes how high off the floor it sits.
+                      const dTop = r.y - (yIn + dy)
+                      dispatch({
+                        type: 'updateObstacle',
+                        id: o.id,
+                        patch: {
+                          xIn: xIn + dx,
+                          topFromFloorIn: o.topFromFloorIn + dTop,
+                          bottomFromFloorIn: Math.max(0, (o.bottomFromFloorIn || 0) + dTop),
+                        },
+                      })
+                    }}
+                    onDragEnd={() => setGuides([])}
+                  />
+                )
+              })}
 
             {/* placed frames */}
             {showFrames &&
@@ -500,7 +568,7 @@ export default function WallCanvas({ ui, patchUi, canvasApi }) {
 
             {/* snap guides */}
             {guides.map((g, i) => (
-              <Line
+              <HaloLine
                 key={i}
                 points={
                   g.type === 'v'
@@ -508,9 +576,9 @@ export default function WallCanvas({ ui, patchUi, canvasApi }) {
                     : [originX - 24, originY + inToDisp(g.at), originX + inToDisp(wallWIn) + 24, originY + inToDisp(g.at)]
                 }
                 stroke={g.kind === 'center' ? CANVAS.guideCenter : CANVAS.guideEdge}
-                strokeWidth={1 / view.zoom}
-                dash={[6 / view.zoom, 4 / view.zoom]}
-                listening={false}
+                zoom={view.zoom}
+                strokeW={1.2}
+                dash={g.kind === 'center' ? undefined : [6 / view.zoom, 4 / view.zoom]}
               />
             ))}
 
@@ -518,15 +586,32 @@ export default function WallCanvas({ ui, patchUi, canvasApi }) {
             {ui.calibrating && calA && (
               <>
                 {calB && (
-                  <Line
+                  <HaloLine
                     points={[calA.x, calA.y, calB.x, calB.y]}
                     stroke={CANVAS.calib}
-                    strokeWidth={3 / view.zoom}
-                    dash={[8, 4]}
+                    zoom={view.zoom}
+                    strokeW={2.5}
+                    dash={[8 / view.zoom, 4 / view.zoom]}
                   />
                 )}
-                <Circle x={calA.x} y={calA.y} radius={5 / view.zoom} fill={CANVAS.calib} />
-                {calB && <Circle x={calB.x} y={calB.y} radius={5 / view.zoom} fill={CANVAS.calib} />}
+                <Circle
+                  x={calA.x}
+                  y={calA.y}
+                  radius={5 / view.zoom}
+                  fill={CANVAS.calib}
+                  stroke={CANVAS.halo}
+                  strokeWidth={2 / view.zoom}
+                />
+                {calB && (
+                  <Circle
+                    x={calB.x}
+                    y={calB.y}
+                    radius={5 / view.zoom}
+                    fill={CANVAS.calib}
+                    stroke={CANVAS.halo}
+                    strokeWidth={2 / view.zoom}
+                  />
+                )}
               </>
             )}
           </Group>
@@ -594,6 +679,7 @@ export default function WallCanvas({ ui, patchUi, canvasApi }) {
               <span>Real length:</span>
               <input
                 type="number"
+                step={stepFor(state.units)}
                 autoFocus
                 placeholder={unitLabel(state.units)}
                 value={calLen}
@@ -785,13 +871,7 @@ function PlacedFrameNode({
         )}
 
         {selected && (
-          <Rect
-            width={fw}
-            height={fh}
-            stroke={CANVAS.selection}
-            strokeWidth={3 / zoom}
-            listening={false}
-          />
+          <HaloRect width={fw} height={fh} stroke={CANVAS.selection} zoom={zoom} strokeW={3} />
         )}
       </Group>
       {soleSelection && (
@@ -816,6 +896,9 @@ function PlacedFrameNode({
 
 function ObstacleNode({
   obstacle,
+  rect,
+  wallWIn,
+  wallHIn,
   offX,
   offY,
   inToDisp,
@@ -829,10 +912,40 @@ function ObstacleNode({
   onDragEnd,
 }) {
   const k = obstacleKind(obstacle.kind)
-  const w = inToDisp(obstacle.wIn)
-  const h = inToDisp(obstacle.hIn)
-  const x = offX + inToDisp(obstacle.xIn)
-  const y = offY + inToDisp(obstacle.yIn)
+  const name = obstacle.label || k.label
+
+  // Out of reach of this wall area: show a tick at the bottom edge saying how far
+  // below it sits, rather than pretending it covers wall it doesn't.
+  if (!rect) {
+    const below = Math.max(0, (obstacle.topFromFloorIn ?? 0))
+    const y = offY + inToDisp(wallHIn)
+    const x = offX + inToDisp(Math.max(0, Math.min(obstacle.xIn, wallWIn)))
+    return (
+      <Group listening={false}>
+        <Line
+          points={[x, y, x + inToDisp(Math.min(obstacle.wIn, wallWIn)), y]}
+          stroke={CANVAS.obstacleStroke}
+          strokeWidth={2 / zoom}
+          dash={[6 / zoom, 5 / zoom]}
+        />
+        <Label x={x + 4 / zoom} y={y + 4 / zoom} scaleX={1 / zoom} scaleY={1 / zoom}>
+          <Tag fill={CANVAS.obstacleTag} cornerRadius={3} opacity={0.85} />
+          <Text
+            text={`${k.icon} ${name} — top ${fmtLen(below, units)} up, below this area`}
+            fontSize={11}
+            fill={CANVAS.obstacleText}
+            padding={3}
+          />
+        </Label>
+      </Group>
+    )
+  }
+
+  const w = inToDisp(rect.w)
+  const h = inToDisp(rect.h)
+  const x = offX + inToDisp(rect.x)
+  const y = offY + inToDisp(rect.y)
+  const clipped = obstacle.bottomFromFloorIn < obstacle.topFromFloorIn - rect.h - 0.05
   return (
     <Group
       x={x}
@@ -861,10 +974,10 @@ function ObstacleNode({
       <Label x={4 / zoom} y={4 / zoom} scaleX={1 / zoom} scaleY={1 / zoom} listening={false}>
         <Tag fill={CANVAS.obstacleTag} cornerRadius={3} opacity={0.88} />
         <Text
-          text={`${k.icon} ${obstacle.label || k.label} · ${fmtLen(obstacle.wIn, units)}×${fmtLen(
-            obstacle.hIn,
+          text={`${k.icon} ${name} · ${fmtLen(obstacle.wIn, units)} wide · top ${fmtLen(
+            obstacle.topFromFloorIn,
             units
-          )}`}
+          )} off the floor${clipped ? ' (continues below)' : ''}`}
           fontSize={11}
           fill={CANVAS.obstacleText}
           padding={3}
@@ -876,15 +989,14 @@ function ObstacleNode({
 
 // Format an inch value in the active unit for labels.
 function fmtLen(inches, units) {
-  const v = fromInches(inches, units)
-  const n = Math.round(v * 10) / 10
-  return units === 'cm' ? `${n}cm` : `${n}"`
+  const n = disp(inches, units)
+  return units === 'm' ? `${n}m` : `${n}"`
 }
 
 // Figma-style reference grid, drawn only over the wall area.
 function GridOverlay({ offX, offY, wallWIn, wallHIn, inToDisp, units, zoom }) {
-  const minorIn = units === 'cm' ? 5 * IN_PER_CM : 6 // 5cm or 6in
-  const majorEvery = 2 // every 2nd line is a major line (10cm / 12in)
+  const minorIn = units === 'm' ? 0.1 * IN_PER_M : 6 // 10cm or 6in
+  const majorEvery = units === 'm' ? 5 : 2 // major line every 0.5m / 12in
   const wPx = inToDisp(wallWIn)
   const hPx = inToDisp(wallHIn)
   const lines = []
@@ -939,9 +1051,9 @@ function DimSeg({ type, x1, y1, x2, y2, text, zoom = 1 }) {
   const ly = type === 'h' ? midY - 16 / zoom : midY
   return (
     <Group listening={false}>
-      <Line points={[x1, y1, x2, y2]} stroke={CANVAS.dim} strokeWidth={1.2 / zoom} />
+      <HaloLine points={[x1, y1, x2, y2]} stroke={CANVAS.dim} zoom={zoom} strokeW={1.2} />
       {ticks.map((p, i) => (
-        <Line key={i} points={p} stroke={CANVAS.dim} strokeWidth={1.2 / zoom} />
+        <HaloLine key={i} points={p} stroke={CANVAS.dim} zoom={zoom} strokeW={1.2} />
       ))}
       <Label
         x={lx}

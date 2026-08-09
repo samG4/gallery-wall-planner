@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { workArea } from './utils.js'
+import { obstacleKind } from './obstacles.js'
 
 const KEY = 'gallery-wall-planner:v2'
 const KEY_V1 = 'gallery-wall-planner:v1'
@@ -54,8 +55,10 @@ export const uid = (p = 'id') => `${p}_${Date.now().toString(36)}_${_id++}`
 export function migrateDoc(raw) {
   if (!raw || typeof raw !== 'object') return emptyDoc()
   const doc = { ...emptyDoc(), ...raw }
+  // The metric display unit used to be centimetres; it's metres now.
+  if (doc.units !== 'm' && doc.units !== 'in') doc.units = doc.units === 'cm' ? 'm' : 'in'
   doc.settings = { ...defaultSettings, ...(raw.settings || {}) }
-  doc.obstacles = Array.isArray(raw.obstacles) ? raw.obstacles : []
+  doc.obstacles = migrateObstacles(Array.isArray(raw.obstacles) ? raw.obstacles : [], doc)
   doc.frameStyles = (raw.frameStyles || []).map((s) => ({
     kind: s.kind || (s.image ? 'image' : 'preset'),
     price: s.price ?? null,
@@ -80,6 +83,38 @@ function clampToWall(s) {
   const eyeLineIn = Math.min(floorOffsetIn + wallHIn, Math.max(floorOffsetIn, s.settings.eyeLineIn))
   if (eyeLineIn === s.settings.eyeLineIn && floorOffsetIn === s.settings.floorOffsetIn) return s
   return { ...s, settings: { ...s.settings, eyeLineIn, floorOffsetIn } }
+}
+
+// v2.0 stored obstacles as a rect on the wall. They are now described by width +
+// heights above the floor, which is how you'd measure them in the room.
+function migrateObstacles(list, doc) {
+  const { wallHIn } = workArea(doc)
+  const floor = doc.settings.floorOffsetIn || 0
+  return list.map((o) => {
+    if (typeof o.topFromFloorIn === 'number') return o
+    const k = obstacleKind(o.kind)
+    if (!(wallHIn > 0) || typeof o.yIn !== 'number') {
+      return {
+        id: o.id,
+        kind: o.kind,
+        label: o.label,
+        xIn: o.xIn ?? 0,
+        wIn: o.wIn ?? k.wIn,
+        bottomFromFloorIn: k.bottomFromFloorIn,
+        topFromFloorIn: k.topFromFloorIn,
+      }
+    }
+    const areaTop = floor + wallHIn
+    return {
+      id: o.id,
+      kind: o.kind,
+      label: o.label,
+      xIn: o.xIn,
+      wIn: o.wIn,
+      topFromFloorIn: areaTop - o.yIn,
+      bottomFromFloorIn: Math.max(0, areaTop - (o.yIn + (o.hIn || 0))),
+    }
+  })
 }
 
 function reducer(state, action) {

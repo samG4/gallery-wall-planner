@@ -1,38 +1,42 @@
-/* Palette: #FF9D9D coral · #FFC5AA peach · #EEF8CD lime · #BBF1D2 mint.
-   The pastels are the surfaces and the accents; the deepened variants below
-   carry text contrast. Canvas colours mirror these in src/theme.js. */
+/* Premium black & white. Neutral greys only — no warm tint — with pure black as
+   the single accent and inversion (black fill / white ink) as the "active" signal.
+   Canvas colours mirror these in src/theme.js. */
 :root {
-  --coral: #ff9d9d;
-  --peach: #ffc5aa;
-  --lime: #eef8cd;
-  --mint: #bbf1d2;
+  --ink: #0b0b0c;
+  --bg: #fbfbfc;
+  --panel: #ffffff;
+  --panel2: #f4f4f6;
+  --panel3: #eaeaed;
+  --border: #e2e2e6;
+  --border-soft: #efeff2;
+  --text: #0b0b0c;
+  --muted: #6e6e75;
 
-  --bg: #faf4ef;          /* warm paper */
-  --panel: #ffffff;       /* sidebar, sheets, modals */
-  --panel2: #fdf4ee;      /* insets and grouped cards */
-  --border: #efdfd5;
-  --border-soft: #f7ebe3;
-  --text: #3f3436;        /* warm near-black */
-  --muted: #8b7c78;
+  --accent: var(--ink);
+  --accent-hover: #26262a;
+  --accent-ink: #ffffff;
 
-  --accent: var(--coral);
-  --accent-hover: #ffb2b2;
-  --accent-ink: #5a2626;  /* text on coral — 6:1 */
+  --ok: #0b0b0c;
+  --ok-bg: var(--panel2);
+  --warn-ink: #0b0b0c;
+  --warn-bg: var(--panel3);
+  --danger-bg: #ffffff;
+  --danger-ink: #0b0b0c;
+  --danger-border: #0b0b0c;
 
-  --ok: #2f6b52;
-  --ok-bg: var(--mint);
-  --warn-ink: #8a5218;
-  --warn-bg: var(--peach);
-  --danger-bg: #ffd9d4;
-  --danger-ink: #9c2f26;
-  --danger-border: #f5bcb4;
+  --canvas-bg: #e6e6ea;
+  --ring: #0b0b0c;
 
-  --canvas-bg: #e3d7d0;   /* the room around the wall — deeper so the wall reads as a surface */
-  --ring: #e0655f;
+  /* Motion. One easing curve for everything that moves, three speeds:
+     1 = feedback under the finger, 2 = things arriving, 3 = things travelling. */
+  --ease: cubic-bezier(.2, .7, .3, 1);
+  --dur-1: .13s;
+  --dur-2: .22s;
+  --dur-3: .34s;
 
-  --shadow-sm: 0 1px 2px rgba(120, 92, 84, 0.12);
-  --shadow-md: 0 6px 18px rgba(120, 92, 84, 0.16);
-  --shadow-lg: 0 14px 40px rgba(120, 92, 84, 0.22);
+  --shadow-sm: 0 1px 2px rgba(11, 11, 12, 0.08);
+  --shadow-md: 0 6px 20px rgba(11, 11, 12, 0.12);
+  --shadow-lg: 0 18px 48px rgba(11, 11, 12, 0.20);
 
   --tabbar-h: 58px;
 }
@@ -56,7 +60,7 @@ body {
 }
 .topbar h1 { font-size: 18px; margin: 0; white-space: nowrap; letter-spacing: -0.2px; }
 .topbar-actions { display: flex; gap: 8px; align-items: center; }
-.unit-toggle { background: var(--lime); color: #4a5324; text-transform: uppercase; min-width: 42px; }
+.unit-toggle { background: var(--panel2); color: var(--text); text-transform: uppercase; min-width: 42px; }
 
 .body { flex: 1; display: flex; min-height: 0; }
 
@@ -74,10 +78,42 @@ body {
 .tabstrip button {
   flex: 1; background: transparent; color: var(--muted); border-radius: 9px;
   padding: 7px 4px; font-size: 11px; display: flex; flex-direction: column; gap: 2px;
-  align-items: center; line-height: 1.1; font-weight: 600;
+  align-items: center; line-height: 1.1; font-weight: 600; position: relative;
 }
 .tabstrip button:hover { background: #fff; color: var(--text); }
 .tabstrip button.on { background: var(--accent); color: var(--accent-ink); box-shadow: var(--shadow-sm); }
+
+/* Step ticked off. Sits in the corner so it never reflows the label. */
+.tab-done {
+  position: absolute; top: 3px; right: 5px;
+  font-size: 9px; line-height: 1; font-weight: 700; opacity: .55;
+}
+.tabstrip button.on .tab-done, .tabbar button.on .tab-done { opacity: .8; }
+
+/* "What now?" bar. The one thing that keeps a first-timer moving through the
+   five steps — and the only place that promises the printed nail map up front. */
+.nextbar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  background: var(--panel); border-top: 1px solid var(--border);
+}
+.nextbar-copy { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 1px; }
+.nextbar-kicker {
+  font-size: 9.5px; text-transform: uppercase; letter-spacing: .9px;
+  color: var(--muted); font-weight: 700;
+}
+.nextbar strong { font-size: 13px; color: var(--text); line-height: 1.25; }
+.nextbar-hint { font-size: 11px; color: var(--muted); line-height: 1.35; }
+.nextbar button { flex: 0 0 auto; padding: 9px 13px; box-shadow: var(--shadow-sm); }
+
+.nextbar.floating {
+  position: fixed; z-index: 35;
+  left: 8px; right: 8px;
+  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 8px);
+  border: 1px solid var(--border); border-radius: 14px;
+  box-shadow: var(--shadow-md);
+}
+.nextbar.floating .nextbar-hint { display: none; }
 
 .support-bar {
   padding: 10px 12px;
@@ -111,9 +147,23 @@ body {
 .empty-state {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
   color: var(--muted); pointer-events: none; text-align: center; padding: 24px;
+  /* Konva makes its own container position:relative, so without this the stage
+     paints over the empty state and swallows the clicks. */
+  z-index: 2;
 }
 .empty-title { font-size: 21px; margin: 0 0 6px; color: var(--text); font-weight: 700; }
-.empty-sub { font-size: 14px; margin: 0; max-width: 380px; line-height: 1.5; }
+.empty-sub { font-size: 14px; margin: 0 auto; max-width: 380px; line-height: 1.5; }
+/* The wrapper kills pointer events so canvas drags pass through; the buttons
+   have to opt back in. */
+.empty-actions {
+  display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
+  margin-top: 16px; pointer-events: auto;
+}
+button.ghost-outline {
+  background: var(--panel); color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+button.ghost-outline:hover { background: var(--panel2); box-shadow: inset 0 0 0 1px var(--ink); }
 
 button {
   background: var(--accent); color: var(--accent-ink); border: none; border-radius: 9px;
@@ -126,24 +176,28 @@ button:disabled { opacity: .45; cursor: not-allowed; transform: none; }
 button:focus-visible, input:focus-visible, a:focus-visible {
   outline: 2px solid var(--ring); outline-offset: 2px;
 }
+/* No red to lean on, so destructive reads as the heaviest outline on the page. */
 button.danger {
   background: var(--danger-bg); color: var(--danger-ink);
-  box-shadow: inset 0 0 0 1px var(--danger-border);
+  box-shadow: inset 0 0 0 2px var(--danger-border);
+  font-weight: 700; letter-spacing: .01em;
 }
-button.danger:hover { background: #ffe6e2; }
+button.danger:hover { background: var(--ink); color: #fff; }
 button.linkbtn {
   background: transparent; color: var(--muted); padding: 6px 4px;
   text-decoration: underline; font-weight: 500;
 }
 button.linkbtn:hover { background: transparent; color: var(--text); }
 button.linkbtn.grow { flex: 1; text-align: left; text-decoration: none; }
-button.active { background: var(--warn-bg); color: var(--warn-ink); }
+button.active { background: var(--ink); color: #fff; }
 button.addnew {
   width: 100%; background: var(--panel2); color: var(--text);
   border: 1px dashed var(--border); font-weight: 600;
 }
 button.addnew:hover { background: #fff; border-color: var(--accent); }
 button.cta { width: 100%; padding: 12px; font-weight: 700; font-size: 14px; margin-bottom: 10px; box-shadow: var(--shadow-sm); }
+/* A CTA that follows an input row needs air above it, or it reads as part of the row. */
+button.cta.spaced { margin-top: 12px; }
 button.ghost {
   background: var(--panel); color: var(--text);
   box-shadow: inset 0 0 0 1px var(--border); min-width: 34px;
@@ -171,6 +225,11 @@ label.mini { flex: 0 0 auto; }
 }
 .filebtn:hover { background: var(--accent-hover); }
 .filebtn.small { padding: 7px; font-size: 12px; }
+.filebtn.secondary {
+  background: var(--panel); color: var(--text);
+  box-shadow: inset 0 0 0 1.5px var(--ink); margin-top: 6px;
+}
+.filebtn.secondary:hover { background: var(--panel2); }
 
 .hint { font-size: 11.5px; color: var(--muted); margin: 6px 0; line-height: 1.45; }
 .ok { color: var(--ok); }
@@ -184,13 +243,39 @@ label.mini { flex: 0 0 auto; }
 }
 .calib-method strong { display: block; font-size: 12.5px; margin-bottom: 7px; }
 
+/* section heading + ⓘ tooltip. The rule under the heading runs the full width of
+   the card, so the negative margins cancel the card's padding. */
+.sec-head {
+  display: flex; align-items: center; gap: 7px;
+  margin: -2px -11px 10px; padding: 0 11px 9px;
+  border-bottom: 1px solid var(--border);
+}
+.sec-head strong { display: inline; margin: 0; }
+.infobtn {
+  width: 18px; height: 18px; min-width: 18px; padding: 0; flex: 0 0 auto;
+  border-radius: 50%; font: 700 11px/1 Georgia, 'Times New Roman', serif;
+  background: var(--panel); color: var(--muted);
+  box-shadow: inset 0 0 0 1.5px var(--border);
+}
+.infobtn:hover, .infobtn[aria-expanded='true'] {
+  background: var(--ink); color: #fff; box-shadow: none;
+}
+.tooltip {
+  position: fixed; z-index: 90;
+  background: var(--ink); color: #fff;
+  border-radius: 10px; padding: 10px 12px;
+  font-size: 11.5px; line-height: 1.5; font-weight: 400;
+  box-shadow: var(--shadow-lg);
+}
+
 .chips { display: flex; flex-wrap: wrap; gap: 5px; margin: 7px 0; }
 .chip {
   background: var(--panel); color: var(--text);
   box-shadow: inset 0 0 0 1px var(--border);
   font-size: 11.5px; padding: 6px 11px; border-radius: 999px; font-weight: 500;
 }
-.chip:hover { background: var(--lime); box-shadow: inset 0 0 0 1px #dbe8b0; }
+.chip:hover { background: var(--panel2); box-shadow: inset 0 0 0 1px var(--ink); }
+.chip-dim { color: var(--muted); font-variant-numeric: tabular-nums; }
 .toggles { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
 .tog { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); }
 .tog input { width: auto; }
@@ -209,7 +294,7 @@ label.mini { flex: 0 0 auto; }
 .swatches { display: flex; gap: 4px; flex-wrap: wrap; }
 .swatch {
   width: 22px; height: 22px; border-radius: 6px; padding: 0;
-  border: 2px solid transparent; box-shadow: inset 0 0 0 1px rgba(63, 52, 54, .18);
+  border: 2px solid transparent; box-shadow: inset 0 0 0 1px rgba(11, 11, 12, .22);
 }
 .swatch.on { border-color: var(--ring); }
 .seg { display: flex; gap: 4px; margin: 9px 0 7px; }
@@ -225,7 +310,7 @@ label.mini { flex: 0 0 auto; }
 .size-chip:hover { background: var(--panel); box-shadow: inset 0 0 0 2px var(--accent); }
 .size-preview {
   display: block; height: 44px; width: auto; max-width: 100%;
-  border-radius: 1px; box-shadow: 0 2px 5px rgba(120, 92, 84, .28);
+  border-radius: 1px; box-shadow: 0 2px 6px rgba(11, 11, 12, .26);
 }
 .size-mat { display: block; width: 100%; height: 100%; }
 .size-label { font-size: 11px; font-weight: 700; }
@@ -268,13 +353,13 @@ label.mini { flex: 0 0 auto; }
 }
 
 .layout-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.layout-btns button { background: var(--lime); color: #4a5324; }
-.layout-btns button:hover { background: #e5f4b8; }
+.layout-btns button { background: var(--panel); color: var(--text); box-shadow: inset 0 0 0 1px var(--border); }
+.layout-btns button:hover { background: var(--panel2); box-shadow: inset 0 0 0 1px var(--ink); }
 
 .storage { margin-top: 10px; }
 .storage .bar { height: 7px; background: var(--panel2); border-radius: 999px; overflow: hidden; border: 1px solid var(--border); }
-.storage .bar span { display: block; height: 100%; background: var(--mint); }
-.storage .bar span.hot { background: var(--peach); }
+.storage .bar span { display: block; height: 100%; background: var(--ink); }
+.storage .bar span.hot { background: var(--ink); opacity: .45; }
 
 /* overlays on canvas */
 .calib-overlay {
@@ -287,7 +372,7 @@ label.mini { flex: 0 0 auto; }
 .calib-overlay .row { margin-top: 0; }
 .calib-overlay input { width: 84px; }
 .warn-overlay {
-  border-color: #f0c39c; background: var(--peach); color: var(--warn-ink);
+  border-color: var(--ink); background: var(--panel); color: var(--text);
   top: auto; bottom: 12px; font-weight: 600;
 }
 
@@ -299,7 +384,7 @@ label.mini { flex: 0 0 auto; }
   flex-wrap: wrap; max-width: calc(100% - 24px);
 }
 .view-toolbar button { padding: 6px 11px; font-size: 12px; }
-.view-toolbar button.active { background: var(--mint); color: var(--ok); box-shadow: none; }
+.view-toolbar button.active { background: var(--ink); color: #fff; box-shadow: none; }
 .view-toolbar .zoomlabel { min-width: 52px; }
 .tb-sep { width: 1px; background: var(--border); margin: 3px 3px; }
 
@@ -332,18 +417,19 @@ label.mini { flex: 0 0 auto; }
   border-radius: 10px; padding: 11px 13px; font-size: 13px;
   box-shadow: var(--shadow-lg);
 }
-.toast.ok { border-left-color: #7ed4a6; }
-.toast.warn { border-left-color: var(--peach); }
-.toast span { flex: 1; }
+.toast.ok { border-left-color: var(--ink); }
+.toast.warn { border-left-color: var(--muted); }
+.toast-mark { font-weight: 700; line-height: 1; }
+.toast span.toast-msg { flex: 1; }
 .toast-x { background: transparent; color: var(--muted); padding: 0 4px; font-size: 16px; }
 .toast-x:hover { background: transparent; color: var(--text); }
 
 /* first-run coachmarks */
 .coach-layer { position: fixed; inset: 0; z-index: 70; }
-.coach-dim { position: absolute; inset: 0; background: rgba(63, 52, 54, .5); }
+.coach-dim { position: absolute; inset: 0; background: rgba(11, 11, 12, .58); }
 .coach-hole {
   position: absolute; border-radius: 14px; pointer-events: none;
-  box-shadow: 0 0 0 9999px rgba(63, 52, 54, .5), 0 0 0 2px var(--accent);
+  box-shadow: 0 0 0 9999px rgba(11, 11, 12, .58), 0 0 0 2px #fff;
   transition: top .18s ease, left .18s ease, width .18s ease, height .18s ease;
 }
 .coach-tip {
@@ -362,7 +448,7 @@ label.mini { flex: 0 0 auto; }
 
 /* modals */
 .modal-backdrop {
-  position: fixed; inset: 0; background: rgba(63, 52, 54, .38);
+  position: fixed; inset: 0; background: rgba(11, 11, 12, .45);
   display: flex; align-items: center; justify-content: center; z-index: 50;
   backdrop-filter: blur(2px);
 }
@@ -393,7 +479,11 @@ label.mini { flex: 0 0 auto; }
   border: 1px solid var(--border); border-radius: 6px; overflow: hidden; margin: 8px 0;
 }
 .opening-box img { display: block; pointer-events: none; }
-.opening-rect { position: absolute; border: 2px solid var(--ring); background: rgba(224, 101, 95, .18); pointer-events: none; }
+.opening-rect {
+  position: absolute; border: 2px solid #fff; outline: 1px solid var(--ink);
+  box-shadow: 0 0 0 1px rgba(255,255,255,.6) inset; background: rgba(11, 11, 12, .18);
+  pointer-events: none;
+}
 
 .crop-box {
   position: relative; overflow: hidden; cursor: grab; user-select: none; touch-action: none;
@@ -416,12 +506,12 @@ label.mini { flex: 0 0 auto; }
 .guide-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 14px; }
 .guide-table th, .guide-table td { border: 1px solid #e8dcd4; padding: 6px 8px; text-align: left; }
 .guide-table th { background: var(--panel2); font-size: 11px; text-transform: uppercase; letter-spacing: .3px; }
-.guide-table .total-row td { font-weight: 700; background: var(--lime); }
+.guide-table .total-row td { font-weight: 700; background: var(--panel2); }
 .guide-h4 { margin: 4px 0 6px; font-size: 13px; }
 .guide-foot { font-size: 11.5px; color: var(--muted); margin: 0; }
 
 /* ---------------- mobile ---------------- */
-.sheet-backdrop { position: fixed; inset: 0; background: rgba(63, 52, 54, .3); z-index: 20; }
+.sheet-backdrop { position: fixed; inset: 0; background: rgba(11, 11, 12, .34); z-index: 20; }
 .sheet {
   position: fixed; left: 0; right: 0;
   bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
@@ -447,10 +537,10 @@ label.mini { flex: 0 0 auto; }
 .tabbar button {
   flex: 1; background: transparent; color: var(--muted); border-radius: 0;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 2px; font-size: 10px; padding: 0; font-weight: 600;
+  gap: 2px; font-size: 10px; padding: 0; font-weight: 600; position: relative;
 }
 .tabbar button span[aria-hidden] { font-size: 17px; line-height: 1; }
-.tabbar button.on { color: var(--danger-ink); background: var(--panel2); }
+.tabbar button.on { color: var(--text); background: var(--panel2); box-shadow: inset 0 2px 0 var(--ink); }
 
 @media (max-width: 860px) {
   .topbar { padding: 8px 12px; padding-top: max(8px, env(safe-area-inset-top)); }
@@ -483,6 +573,87 @@ label.mini { flex: 0 0 auto; }
 @media (max-width: 420px) {
   .brand-text { display: none; }
   .size-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ---------------- motion ----------------
+   Things arrive from where they came from and settle; nothing loops, nothing
+   moves more than ~10px, and the canvas itself never animates — it's a ruler,
+   and a ruler that slides is a lie. Durations/easing come from the tokens above. */
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(10px) scale(.99); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes bar-in {
+  from { opacity: 0; transform: translate(-50%, 10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+@keyframes pop-in {
+  0% { opacity: 0; transform: scale(.4); }
+  70% { opacity: 1; transform: scale(1.18); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* Panel content re-enters on every tab change (keyed in Sidebar), so switching
+   steps feels like moving forward rather than a hard cut. */
+.panel-anim { animation: fade-up var(--dur-2) var(--ease) both; }
+.empty-state > div { animation: fade-up var(--dur-3) var(--ease) both; }
+.nextbar-copy { animation: fade-up var(--dur-2) var(--ease) both; }
+.nextbar.floating { animation: rise-in var(--dur-2) var(--ease) both; }
+.toast { animation: rise-in var(--dur-2) var(--ease) both; }
+.modal-backdrop { animation: fade-in var(--dur-2) var(--ease) both; }
+.modal { animation: rise-in var(--dur-3) var(--ease) both; }
+.coach-tip { animation: fade-up var(--dur-2) var(--ease) both; }
+.frame-actionbar { animation: bar-in var(--dur-2) var(--ease) both; }
+.tab-done { animation: pop-in var(--dur-3) var(--ease) both; }
+.obstacle-list li { animation: fade-up var(--dur-2) var(--ease) both; }
+.photo-cell { animation: fade-in var(--dur-2) var(--ease) both; }
+
+/* Hover lift on the things you pick from. Kept off :active so a press still
+   reads as a press. */
+.chip, .size-chip, .layout-btns button, .photo-cell img, .swatch {
+  transition: transform var(--dur-1) var(--ease), background var(--dur-1) var(--ease),
+    box-shadow var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease);
+}
+.chip:hover, .size-chip:hover, .layout-btns button:hover, .swatch:hover {
+  transform: translateY(-1px);
+}
+.chip:active, .size-chip:active, .layout-btns button:active, .swatch:active {
+  transform: translateY(0);
+}
+.photo-cell img:hover { transform: scale(1.03); }
+
+/* The active tab is an inversion, so let the icon acknowledge the switch. */
+.tabstrip button span[aria-hidden], .tabbar button span[aria-hidden] {
+  transition: transform var(--dur-2) var(--ease);
+}
+.tabstrip button.on span[aria-hidden], .tabbar button.on span[aria-hidden] {
+  transform: scale(1.14);
+}
+
+.sheet { transition: transform var(--dur-3) var(--ease); }
+.sheet-backdrop { animation: fade-in var(--dur-2) var(--ease) both; }
+.coach-hole {
+  transition: top var(--dur-2) var(--ease), left var(--dur-2) var(--ease),
+    width var(--dur-2) var(--ease), height var(--dur-2) var(--ease);
+}
+
+/* Respect the OS setting: no motion, but keep every end state reachable. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* ---------------- print: the hanging guide only ---------------- */

@@ -6,7 +6,7 @@
 import { emptyDoc, migrateDoc, uid, DOC_VERSION } from './store.jsx'
 import { makePresetStyle } from './frames.js'
 import { LAYOUTS, usableArea, layoutInArea } from './layouts.js'
-import { obstacleKind } from './obstacles.js'
+import { makeObstacle, obstacleRects } from './obstacles.js'
 
 export const PROJECT_EXT = 'gwp.json'
 
@@ -37,8 +37,8 @@ export function demoDoc() {
 
   const styles = [
     makePresetStyle(uid('style'), { artW: 16, artH: 20, matIn: 2.5, mouldingKey: 'black', count: 1, name: '16×20 Black' }),
-    makePresetStyle(uid('style'), { artW: 11, artH: 14, matIn: 2, mouldingKey: 'oak', count: 2, name: '11×14 Oak' }),
-    makePresetStyle(uid('style'), { artW: 8, artH: 10, matIn: 1.5, mouldingKey: 'white', count: 3, name: '8×10 White' }),
+    makePresetStyle(uid('style'), { artW: 11, artH: 14, matIn: 2, mouldingKey: 'white', count: 2, name: '11×14 White' }),
+    makePresetStyle(uid('style'), { artW: 8, artH: 10, matIn: 1.5, mouldingKey: 'grey', count: 3, name: '8×10 Grey' }),
   ]
   doc.frameStyles = styles
 
@@ -58,24 +58,14 @@ export function demoDoc() {
     }
   })
 
-  const sofa = obstacleKind('sofa')
-  doc.obstacles = [
-    {
-      id: uid('obs'),
-      kind: 'sofa',
-      label: 'Sofa',
-      wIn: sofa.wIn,
-      hIn: sofa.hIn,
-      xIn: (wIn - sofa.wIn) / 2,
-      yIn: hIn - sofa.hIn,
-    },
-  ]
+  doc.obstacles = [makeObstacle(uid('obs'), 'sofa', wIn)]
 
   // Seed a two-row arrangement in the free band above the sofa.
   const byId = {}
   for (const s of styles) byId[s.id] = s
   const frames = placed.map((p) => ({ id: p.id, wIn: byId[p.styleId].outerW, hIn: byId[p.styleId].outerH }))
-  const area = usableArea(wIn, hIn, doc.obstacles, doc.settings.gapIn)
+  const blockers = obstacleRects(doc.obstacles, hIn, doc.settings.floorOffsetIn)
+  const area = usableArea(wIn, hIn, blockers, doc.settings.gapIn)
   const pos = layoutInArea(
     LAYOUTS.tworows.fn,
     frames,

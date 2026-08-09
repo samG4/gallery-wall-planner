@@ -17,9 +17,9 @@ and layout live in `localStorage` on your machine.
 
 **Set up the wall**
 
-- **Two wall modes** — upload a photo of your actual wall, or start from a blank
-  canvas at a size you type in (with presets: above sofa, above bed, hallway,
-  stairwell, full wall).
+- **Two wall modes** — upload a photo of your actual wall, or start from a blank area
+  at a size you type in. Presets ("Over a sofa 84×48", "Hallway run 120×60", …) set the
+  size *and* how high off the floor that area starts, so heights are right from the off.
 - **Real-world scale** — calibrate a photo wall by selecting the working area, drawing
   a reference line, or entering the wall width. Blank walls get scale from their size.
 - **Demo wall** — one click loads a finished example so you can try the tool with
@@ -47,8 +47,11 @@ and layout live in `localStorage` on your machine.
   evenly, or force an exact equal gap. Drag moves the whole selection together.
 - **Precise control** — numeric X/Y and rotation for the selection, arrow-key nudge
   (Shift for a bigger step), duplicate, delete.
-- **Obstacles** — block out the sofa, TV, window, door, switch or thermostat at real
-  size. Auto-layouts keep clear of them and they appear in the hanging guide.
+- **Obstacles** — a sofa isn't a rectangle stuck to the wall, so you describe things
+  the way you'd measure them in the room: a width, and how high off the **floor** they
+  reach (sofa back 33in, window sill 30in, switch 46in). Only the part that actually
+  overlaps your wall area blocks anything. Auto-layouts keep clear of them and they
+  appear in the hanging guide.
 - **Zoom & pan** — scrolling pans (it never fights you by zooming); pinch, or
   `Cmd/Ctrl`+scroll, or the toolbar buttons zoom. Dragging the background pans too.
 - **Overlays** — reference grid, live blueprint dimensions, and the 57in museum
@@ -67,8 +70,9 @@ and layout live in `localStorage` on your machine.
 - **Export** — download the wall as a PNG, or save/reopen the whole project as a JSON
   file (images included) to back it up or move it to another browser.
 - **Units** — toggle inches / cm (inches are canonical internally).
-- **Light, warm interface** — a soft coral / peach / lime / mint palette, because a
-  wall of your own photos shouldn't be planned in a dark IDE.
+- **Black & white** — a monochrome interface so nothing competes with the artwork.
+  Guides on the canvas are drawn with a white halo under a black stroke, so they stay
+  legible over a dark wall photo and a white blank alike.
 - **Undo / redo** — full history with sensible gesture coalescing
   (Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z or Ctrl+Y).
 - **Works on phones** — the layout switches to a full-screen canvas with a bottom tab

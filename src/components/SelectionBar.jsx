@@ -1,21 +1,22 @@
 import React, { useEffect, useState } from 'react'
 import { useStore, uid } from '../store.jsx'
-import { fromInches, toInches, unitLabel } from '../units.js'
+import { disp, stepFor, toInches, unitLabel } from '../units.js'
 import { frameBoxIn } from '../utils.js'
 import { align, distribute, evenGap } from '../align.js'
 import { obstacleKind } from '../obstacles.js'
+import { workArea } from '../utils.js'
 
 // Number field that lets you type freely and only commits a valid value.
-function NumInput({ valueIn, units, onCommitIn, title, width = 62, step = 0.5 }) {
+function NumInput({ valueIn, units, onCommitIn, title, width = 62, step }) {
   const [txt, setTxt] = useState('')
   const [live, setLive] = useState(false)
   useEffect(() => {
-    if (!live) setTxt(String(Math.round(fromInches(valueIn, units) * 100) / 100))
+    if (!live) setTxt(String(disp(valueIn, units)))
   }, [valueIn, units, live])
   return (
     <input
       type="number"
-      step={step}
+      step={step ?? stepFor(units)}
       className="numin"
       style={{ width }}
       title={title}
@@ -49,16 +50,44 @@ export default function SelectionBar({ ui, patchUi }) {
           {k.icon} {obstacle.label || k.label}
         </span>
         <span className="bar-group">
-          <label>W</label>
-          <NumInput valueIn={obstacle.wIn} units={units} onCommitIn={(v) => patch({ wIn: Math.max(1, v) })} title={`Width (${u})`} />
-          <label>H</label>
-          <NumInput valueIn={obstacle.hIn} units={units} onCommitIn={(v) => patch({ hIn: Math.max(1, v) })} title={`Height (${u})`} />
+          <label>Width</label>
+          <NumInput
+            valueIn={obstacle.wIn}
+            units={units}
+            onCommitIn={(v) => patch({ wIn: Math.max(1, v) })}
+            title={`Width (${u})`}
+          />
+          <label>From left</label>
+          <NumInput
+            valueIn={obstacle.xIn}
+            units={units}
+            onCommitIn={(v) => patch({ xIn: v })}
+            title={`Distance from the wall's left edge (${u})`}
+          />
         </span>
         <span className="bar-group">
-          <label>X</label>
-          <NumInput valueIn={obstacle.xIn} units={units} onCommitIn={(v) => patch({ xIn: v })} title={`From wall left (${u})`} />
-          <label>Y</label>
-          <NumInput valueIn={obstacle.yIn} units={units} onCommitIn={(v) => patch({ yIn: v })} title={`From wall top (${u})`} />
+          <label title={`Measured to the ${k.measure}`}>Top off floor</label>
+          <NumInput
+            valueIn={obstacle.topFromFloorIn}
+            units={units}
+            onCommitIn={(v) =>
+              patch({
+                topFromFloorIn: Math.max((obstacle.bottomFromFloorIn || 0) + 0.5, v),
+              })
+            }
+            title={`Height of the ${k.measure} above the floor (${u})`}
+          />
+          <label>Bottom</label>
+          <NumInput
+            valueIn={obstacle.bottomFromFloorIn || 0}
+            units={units}
+            onCommitIn={(v) =>
+              patch({
+                bottomFromFloorIn: Math.max(0, Math.min(obstacle.topFromFloorIn - 0.5, v)),
+              })
+            }
+            title={`Height of its bottom edge above the floor (${u}) — 0 for anything standing on the floor`}
+          />
         </span>
         <button
           className="danger"
@@ -137,14 +166,14 @@ export default function SelectionBar({ ui, patchUi }) {
             <button className="ghost" title="Space evenly down" onClick={() => applyPatches(distribute(items, 'v'))}>↕ even</button>
             <button
               className="ghost"
-              title={`Set the standard gap (${Math.round(fromInches(state.settings.gapIn, units) * 10) / 10}${u}) horizontally`}
+              title={`Set the standard gap (${disp(state.settings.gapIn, units)}${u}) horizontally`}
               onClick={() => applyPatches(evenGap(items, 'h', state.settings.gapIn))}
             >
               ↔ gap
             </button>
             <button
               className="ghost"
-              title={`Set the standard gap (${Math.round(fromInches(state.settings.gapIn, units) * 10) / 10}${u}) vertically`}
+              title={`Set the standard gap (${disp(state.settings.gapIn, units)}${u}) vertically`}
               onClick={() => applyPatches(evenGap(items, 'v', state.settings.gapIn))}
             >
               ↕ gap

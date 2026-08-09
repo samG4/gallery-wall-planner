@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react'
 import { useStore } from '../store.jsx'
-import { toInches, fromInches, unitLabel } from '../units.js'
+import { toInches, disp, stepFor, unitLabel } from '../units.js'
 
 // Draw a rectangle on the wall photo = the working wall area, then enter its real
 // width & height. This sets the scale (px/in) AND the placement bounds, so frames
@@ -11,8 +11,8 @@ export default function WallAreaEditor({ onClose }) {
   const boxRef = useRef(null)
   const [drag, setDrag] = useState(null)
   const [rect, setRect] = useState(state.wallRegion || null) // fractions
-  const [wIn, setWIn] = useState(state.wallRegionWIn ? fromInches(state.wallRegionWIn, units).toString() : '')
-  const [hIn, setHIn] = useState(state.wallRegionHIn ? fromInches(state.wallRegionHIn, units).toString() : '')
+  const [wIn, setWIn] = useState(state.wallRegionWIn ? String(disp(state.wallRegionWIn, units)) : '')
+  const [hIn, setHIn] = useState(state.wallRegionHIn ? String(disp(state.wallRegionHIn, units)) : '')
   const [img] = useState(() => {
     const i = new Image()
     i.src = state.wallImage
@@ -121,6 +121,7 @@ export default function WallAreaEditor({ onClose }) {
             <span>Real size:</span>
             <input
               type="number"
+              step={stepFor(units)}
               style={{ width: 90 }}
               placeholder={`W (${unitLabel(units)})`}
               value={wIn}
@@ -129,6 +130,7 @@ export default function WallAreaEditor({ onClose }) {
             <span>×</span>
             <input
               type="number"
+              step={stepFor(units)}
               style={{ width: 90 }}
               placeholder={`H (${unitLabel(units)})`}
               value={hIn}

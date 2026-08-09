@@ -66,6 +66,7 @@ export default function FrameStyleForm({ onDone }) {
       <div className="row">
         <input
           type="number"
+          step={units === 'm' ? 0.01 : 0.5}
           placeholder={`W (${unitLabel(units)})`}
           aria-label={`Outer width in ${unitLabel(units)}`}
           value={f.width}
@@ -73,6 +74,7 @@ export default function FrameStyleForm({ onDone }) {
         />
         <input
           type="number"
+          step={units === 'm' ? 0.01 : 0.5}
           placeholder={`H (${unitLabel(units)})`}
           aria-label={`Outer height in ${unitLabel(units)}`}
           value={f.height}

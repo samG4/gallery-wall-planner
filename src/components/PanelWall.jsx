@@ -1,26 +1,31 @@
 import React, { useState } from 'react'
 import { useStore } from '../store.jsx'
 import { readImageFile, workArea, clamp } from '../utils.js'
-import { toInches, fromInches, unitLabel } from '../units.js'
+import { toInches, unitLabel, disp as dispIn, stepFor } from '../units.js'
 import { useToast } from './Toasts.jsx'
 import { demoDoc } from '../project.js'
+import SectionTitle from './SectionTitle.jsx'
 
 const BLANK_PPI = 10 // render px per inch for a blank wall
 
+// Starting sizes for the AREA you plan to hang in — not the whole room wall.
+// `floor` = how high that area's bottom edge sits, so "over a sofa" starts above
+// the sofa back rather than at the skirting board.
 const WALL_PRESETS = [
-  { label: 'Above sofa', w: 84, h: 48 },
-  { label: 'Above bed', w: 72, h: 54 },
-  { label: 'Hallway', w: 120, h: 60 },
-  { label: 'Stairwell', w: 96, h: 90 },
-  { label: 'Full wall', w: 144, h: 96 },
+  { label: 'Over a sofa', w: 84, h: 48, floor: 36 },
+  { label: 'Over a bed', w: 72, h: 54, floor: 40 },
+  { label: 'Over a console', w: 60, h: 42, floor: 34 },
+  { label: 'Hallway run', w: 120, h: 60, floor: 30 },
+  { label: 'Stairwell', w: 96, h: 90, floor: 20 },
+  { label: 'Whole wall', w: 144, h: 96, floor: 0 },
 ]
 
 export default function PanelWall({ ui, patchUi }) {
   const { state, dispatch } = useStore()
   const { units } = state
   const toast = useToast()
-  const [blankW, setBlankW] = useState(() => String(fromInches(48, units)))
-  const [blankH, setBlankH] = useState(() => String(fromInches(36, units)))
+  const [blankW, setBlankW] = useState(() => String(dispIn(48, units)))
+  const [blankH, setBlankH] = useState(() => String(dispIn(36, units)))
   const [wallW, setWallW] = useState('')
 
   async function onWallUpload(e) {
@@ -44,7 +49,7 @@ export default function PanelWall({ ui, patchUi }) {
     toast('Wall photo added — now set the wall area so the scale is real.', 'info')
   }
 
-  function makeBlankWall(wOverride, hOverride) {
+  function makeBlankWall(wOverride, hOverride, floorIn) {
     const wIn = wOverride ?? toInches(parseFloat(blankW), units)
     const hIn = hOverride ?? toInches(parseFloat(blankH), units)
     if (!wIn || !hIn) return toast('Enter a width and a height first.', 'warn')
@@ -59,6 +64,7 @@ export default function PanelWall({ ui, patchUi }) {
         wallRegion: null,
       },
     })
+    if (typeof floorIn === 'number') dispatch({ type: 'setSettings', payload: { floorOffsetIn: floorIn } })
   }
 
   function calibrateByWallWidth() {
@@ -81,12 +87,10 @@ export default function PanelWall({ ui, patchUi }) {
   const hasWall = wallHIn > 0
   const eyeMinIn = state.settings.floorOffsetIn
   const eyeMaxIn = hasWall ? state.settings.floorOffsetIn + wallHIn : Number.MAX_SAFE_INTEGER
-  const disp = (inches) => Math.round(fromInches(inches, units) * 10) / 10
+  const disp = (inches) => dispIn(inches, units)
 
   return (
     <section>
-      <h2>1 · Wall</h2>
-
       {!state.wallMode && (
         <button
           className="cta"
@@ -101,26 +105,35 @@ export default function PanelWall({ ui, patchUi }) {
 
       {/* Blank canvas — no photo needed, scale is exact from dimensions */}
       <div className="calib-method">
-        <strong>Blank canvas</strong>
-        <p className="hint">No wall photo? Set a size and colour to try arrangements.</p>
+        <SectionTitle
+          title="Wall area"
+          info="The patch of wall you'll actually hang in — not the whole room wall. No photo needed: give it a size and a colour and start arranging. The presets also set how high off the floor that patch starts."
+        />
         <div className="chips">
           {WALL_PRESETS.map((p) => (
             <button
               key={p.label}
               className="chip"
+              title={`${disp(p.w)}×${disp(p.h)} ${unitLabel(units)}, starting ${disp(
+                p.floor
+              )} ${unitLabel(units)} above the floor`}
               onClick={() => {
-                setBlankW(String(Math.round(fromInches(p.w, units))))
-                setBlankH(String(Math.round(fromInches(p.h, units))))
-                makeBlankWall(p.w, p.h)
+                setBlankW(String(disp(p.w)))
+                setBlankH(String(disp(p.h)))
+                makeBlankWall(p.w, p.h, p.floor)
               }}
             >
-              {p.label}
+              {p.label}{' '}
+              <span className="chip-dim">
+                {disp(p.w)}×{disp(p.h)}
+              </span>
             </button>
           ))}
         </div>
         <div className="row">
           <input
             type="number"
+            step={stepFor(units)}
             aria-label={`Wall width in ${unitLabel(units)}`}
             placeholder={`W (${unitLabel(units)})`}
             value={blankW}
@@ -128,6 +141,7 @@ export default function PanelWall({ ui, patchUi }) {
           />
           <input
             type="number"
+            step={stepFor(units)}
             aria-label={`Wall height in ${unitLabel(units)}`}
             placeholder={`H (${unitLabel(units)})`}
             value={blankH}
@@ -142,16 +156,14 @@ export default function PanelWall({ ui, patchUi }) {
             aria-label="Wall colour"
           />
         </div>
-        <button onClick={() => makeBlankWall()}>
+        <button className="cta spaced" onClick={() => makeBlankWall()}>
           {state.wallMode === 'blank' ? 'Update blank wall' : 'Use blank wall'}
         </button>
-      </div>
-
-      {/* Photo wall */}
-      <div className="calib-method">
-        <strong>Or use a wall photo</strong>
-        <label className="filebtn small">
-          {state.wallMode === 'photo' ? 'Replace wall photo' : 'Upload wall photo'}
+        <label
+          className="filebtn secondary"
+          title="Photograph the wall straight on, then mark a rectangle you know the real size of — that sets the scale."
+        >
+          {state.wallMode === 'photo' ? 'Replace wall photo' : 'Or upload a wall photo'}
           <input type="file" accept="image/*" onChange={onWallUpload} hidden />
         </label>
 
@@ -160,8 +172,8 @@ export default function PanelWall({ ui, patchUi }) {
             <p className="scale-status">
               {state.wallRegion ? (
                 <span className="ok">
-                  ✓ Wall area set ({fromInches(state.wallRegionWIn, units).toFixed(0)}×
-                  {fromInches(state.wallRegionHIn, units).toFixed(0)} {unitLabel(units)})
+                  ✓ Wall area set ({disp(state.wallRegionWIn)}×{disp(state.wallRegionHIn)}{' '}
+                  {unitLabel(units)})
                 </span>
               ) : scaleReady ? (
                 <span className="ok">✓ Scale set ({state.pixelsPerInch.toFixed(1)} px/in)</span>
@@ -190,6 +202,7 @@ export default function PanelWall({ ui, patchUi }) {
             <div className="row">
               <input
                 type="number"
+                step={stepFor(units)}
                 placeholder={`width (${unitLabel(units)})`}
                 aria-label={`Total wall width in ${unitLabel(units)}`}
                 value={wallW}
@@ -203,14 +216,15 @@ export default function PanelWall({ ui, patchUi }) {
 
       {/* Height references — these drive the eye-line and the hanging guide */}
       <div className="calib-method" data-tour="heights">
-        <strong>Heights</strong>
-        <p className="hint">
-          Used for the eye-line guide and for nail heights in the hanging guide.
-        </p>
+        <SectionTitle
+          title="Heights"
+          info="Everything vertical is measured from the floor. Eye-line is where picture centres sit — galleries use 57in. Bottom edge is how far the bottom of your wall area sits off the floor, which is what turns wall positions into real nail heights."
+        />
         <div className="row">
           <label className="mini">Eye-line</label>
           <input
             type="number"
+            step={stepFor(units)}
             min={disp(eyeMinIn)}
             max={disp(eyeMaxIn)}
             value={disp(state.settings.eyeLineIn)}
@@ -229,9 +243,10 @@ export default function PanelWall({ ui, patchUi }) {
           </p>
         )}
         <div className="row">
-          <label className="mini">Area bottom</label>
+          <label className="mini">Bottom edge</label>
           <input
             type="number"
+            step={stepFor(units)}
             min="0"
             value={disp(state.settings.floorOffsetIn)}
             onChange={(e) => {
@@ -249,7 +264,7 @@ export default function PanelWall({ ui, patchUi }) {
             }}
             aria-label="Height of the working area's bottom edge above the floor"
           />
-          <span className="mini">{unitLabel(units)} above floor</span>
+          <span className="mini">{unitLabel(units)} up from the floor</span>
         </div>
       </div>
     </section>

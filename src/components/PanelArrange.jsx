@@ -1,10 +1,11 @@
 import React from 'react'
 import { useStore, uid } from '../store.jsx'
-import { fromInches, toInches, unitLabel } from '../units.js'
+import { disp, toInches, unitLabel } from '../units.js'
 import { workArea } from '../utils.js'
 import { LAYOUTS, usableArea, layoutInArea } from '../layouts.js'
-import { OBSTACLE_KINDS, obstacleKind } from '../obstacles.js'
+import { OBSTACLE_KINDS, obstacleKind, obstacleRect, obstacleRects, makeObstacle } from '../obstacles.js'
 import { useToast } from './Toasts.jsx'
+import SectionTitle from './SectionTitle.jsx'
 
 export default function PanelArrange({ ui, patchUi }) {
   const { state, dispatch } = useStore()
@@ -23,7 +24,8 @@ export default function PanelArrange({ ui, patchUi }) {
     const frames = state.placedFrames
       .filter((p) => styleById[p.styleId])
       .map((p) => ({ id: p.id, wIn: styleById[p.styleId].outerW, hIn: styleById[p.styleId].outerH }))
-    const area = usableArea(wallWIn, wallHIn, state.obstacles, state.settings.gapIn)
+    const blockers = obstacleRects(state.obstacles, wallHIn, state.settings.floorOffsetIn)
+    const area = usableArea(wallWIn, wallHIn, blockers, state.settings.gapIn)
     const pos = layoutInArea(
       LAYOUTS[key].fn,
       frames,
@@ -46,30 +48,82 @@ export default function PanelArrange({ ui, patchUi }) {
   }
 
   function addObstacle(kind) {
-    const k = obstacleKind(kind)
     const { wallWIn, wallHIn } = workArea(state)
-    const id = uid('obs')
-    dispatch({
-      type: 'addObstacle',
-      obstacle: {
-        id,
-        kind: k.key,
-        label: k.label,
-        wIn: Math.min(k.wIn, Math.max(4, wallWIn - 2)),
-        hIn: Math.min(k.hIn, Math.max(4, wallHIn - 2)),
-        xIn: Math.max(0, wallWIn / 2 - k.wIn / 2),
-        yIn: Math.max(0, wallHIn - k.hIn),
-      },
-    })
-    patchUi({ selectedObstacleId: id, selectedIds: [] })
+    const obstacle = makeObstacle(uid('obs'), kind, wallWIn)
+    dispatch({ type: 'addObstacle', obstacle })
+    patchUi({ selectedObstacleId: obstacle.id, selectedIds: [] })
+    if (!obstacleRect(obstacle, wallHIn, state.settings.floorOffsetIn)) {
+      toast(
+        `${obstacle.label} sits below this wall area, so it blocks nothing here. Adjust its height, or the area's bottom on the Wall step.`,
+        'warn',
+        6000
+      )
+    }
   }
 
+  // Order matters here: describe what's in the way, let a template work around it,
+  // then fine-tune. Auto-layout is the reason to be on this tab, so it stays high.
   return (
     <section>
-      <h2>4 · Arrange</h2>
+      <div className="calib-method">
+        <SectionTitle
+          title="Obstacles"
+          info="Measured the way you'd measure the room: a width, and how high off the floor it reaches. Only the part that overlaps this wall area blocks anything — a sofa back 33in up blocks the bottom 33in of the wall, not all of it."
+        />
+        <div className="chips">
+          {OBSTACLE_KINDS.map((k) => (
+            <button key={k.key} className="chip" onClick={() => addObstacle(k.key)}>
+              {k.icon} {k.label}
+            </button>
+          ))}
+        </div>
+        {state.obstacles.length > 0 && (
+          <ul className="obstacle-list">
+            {state.obstacles.map((o) => (
+              <li key={o.id}>
+                <button
+                  className="linkbtn grow"
+                  onClick={() => patchUi({ selectedObstacleId: o.id, selectedIds: [] })}
+                >
+                  {obstacleKind(o.kind).icon} {o.label} · {disp(o.wIn, units)}
+                  {u} wide · top {disp(o.topFromFloorIn, units)}
+                  {u} up
+                  {!obstacleRect(o, workArea(state).wallHIn, state.settings.floorOffsetIn) && (
+                    <span className="warn"> · below this area</span>
+                  )}
+                </button>
+                <button
+                  className="linkbtn"
+                  aria-label={`Remove ${o.label}`}
+                  onClick={() => dispatch({ type: 'removeObstacle', id: o.id })}
+                >
+                  ×
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       <div className="calib-method">
-        <strong>Spacing &amp; helpers</strong>
+        <SectionTitle
+          title="Auto-layout"
+          info="Seeds an arrangement you then drag to taste. Each template centres itself in the tallest band of wall that's clear of your obstacles, and never places a frame off the wall."
+        />
+        <div className="layout-btns">
+          {Object.entries(LAYOUTS).map(([k, v]) => (
+            <button key={k} onClick={() => applyLayout(k)} disabled={!scaleReady}>
+              {v.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="calib-method">
+        <SectionTitle
+          title="Spacing &amp; helpers"
+          info="Gap is the spacing auto-layouts use and the one frames snap to. Hanger drop is how far below a frame's top edge its hook sits — measure yours, it decides every nail height in the guide."
+        />
         <div className="row">
           <label className="mini">Gap</label>
           <input
@@ -77,12 +131,14 @@ export default function PanelArrange({ ui, patchUi }) {
             min="0.5"
             max="10"
             step="0.5"
-            value={Math.round(fromInches(state.settings.gapIn, units) * 2) / 2}
-            onChange={(e) => setCfg({ gapIn: toInches(parseFloat(e.target.value), units) })}
+            /* The slider always works in inches — its range only makes sense in
+               them — and the readout converts. */
+            value={Math.round(state.settings.gapIn * 2) / 2}
+            onChange={(e) => setCfg({ gapIn: parseFloat(e.target.value) })}
             aria-label="Gap between frames"
           />
           <span className="mini num">
-            {Math.round(fromInches(state.settings.gapIn, units) * 10) / 10}
+            {disp(state.settings.gapIn, units)}
             {u}
           </span>
         </div>
@@ -116,62 +172,12 @@ export default function PanelArrange({ ui, patchUi }) {
           <label className="mini">Hanger drop</label>
           <input
             type="number"
-            step="0.25"
-            value={Math.round(fromInches(state.settings.hangerDropIn, units) * 100) / 100}
+            step={units === 'm' ? 0.005 : 0.25}
+            value={disp(state.settings.hangerDropIn, units)}
             onChange={(e) => setCfg({ hangerDropIn: toInches(parseFloat(e.target.value) || 0, units) })}
             aria-label="Distance from frame top down to the hanger"
           />
           <span className="mini">{u} below frame top</span>
-        </div>
-      </div>
-
-      <div className="calib-method">
-        <strong>Obstacles</strong>
-        <p className="hint">
-          Block out what's already there. Auto-layouts keep clear of them, and they show up in the
-          hanging guide.
-        </p>
-        <div className="chips">
-          {OBSTACLE_KINDS.map((k) => (
-            <button key={k.key} className="chip" onClick={() => addObstacle(k.key)}>
-              {k.icon} {k.label}
-            </button>
-          ))}
-        </div>
-        {state.obstacles.length > 0 && (
-          <ul className="obstacle-list">
-            {state.obstacles.map((o) => (
-              <li key={o.id}>
-                <button
-                  className="linkbtn grow"
-                  onClick={() => patchUi({ selectedObstacleId: o.id, selectedIds: [] })}
-                >
-                  {obstacleKind(o.kind).icon} {o.label} ·{' '}
-                  {Math.round(fromInches(o.wIn, units))}×{Math.round(fromInches(o.hIn, units))}
-                  {u}
-                </button>
-                <button
-                  className="linkbtn"
-                  aria-label={`Remove ${o.label}`}
-                  onClick={() => dispatch({ type: 'removeObstacle', id: o.id })}
-                >
-                  ×
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      <div className="calib-method">
-        <strong>Auto-layout</strong>
-        <p className="hint">Seed an arrangement, then drag frames to fine-tune.</p>
-        <div className="layout-btns">
-          {Object.entries(LAYOUTS).map(([k, v]) => (
-            <button key={k} onClick={() => applyLayout(k)} disabled={!scaleReady}>
-              {v.label}
-            </button>
-          ))}
         </div>
       </div>
     </section>

@@ -6,6 +6,8 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from
 
 const SEEN_KEY = 'gallery-wall-planner:tour'
 const PAD = 8
+const TRACK_MS = 50 // how often the spotlight re-measures its target
+const TRACK_MISS_LIMIT = 10 // ~500ms of "target isn't there" before skipping the step
 
 export const tourSeen = () => {
   try {
@@ -25,8 +27,8 @@ const markSeen = () => {
 const STEPS = [
   {
     target: '[data-tour="steps"]',
-    title: 'Five steps, in order',
-    body: 'Wall, frames, photos, arrange, export. Work through them in order and you can’t get lost.',
+    title: 'Five steps, ending at the wall',
+    body: 'Wall, frames, photos, arrange, hang it. The last step prints a sheet with every nail position on it — that’s what this is for. The bar at the bottom always tells you the next step.',
     prepare: ({ patchUi }) => patchUi({ tab: 'wall', sheetOpen: false }),
   },
   {
@@ -56,7 +58,7 @@ const STEPS = [
   },
   {
     target: '[data-tour="export"]',
-    title: 'Then take it to the wall',
+    title: 'This is the point of it',
     body: 'The hanging guide prints every nail position, measured from the wall edges and up from the floor.',
     prepare: ({ patchUi, mobile }) => patchUi({ tab: 'export', sheetOpen: mobile }),
   },
@@ -68,14 +70,23 @@ export default function Coachmarks({ patchUi, mobile, onClose }) {
 
   const step = STEPS[i]
 
-  // Returns false when the step has nothing to point at.
+  // Returns false when the step has nothing to point at. The rect is stamped with
+  // the step it belongs to: the card is positioned from the spotlight, so showing
+  // one before the other has caught up puts the card next to the wrong element.
   const measure = useCallback(() => {
     const el = document.querySelector(STEPS[i]?.target)
     const r = el?.getBoundingClientRect()
-    // Keep the last known rect on a miss — the target of the next step is often
-    // one render behind, and blanking the card mid-tour reads as a glitch.
     if (!r || r.width < 4 || r.height < 4) return false
-    setRect({ top: r.top, left: r.left, width: r.width, height: r.height })
+    setRect((prev) =>
+      prev &&
+      prev.forStep === i &&
+      prev.top === r.top &&
+      prev.left === r.left &&
+      prev.width === r.width &&
+      prev.height === r.height
+        ? prev
+        : { top: r.top, left: r.left, width: r.width, height: r.height, forStep: i }
+    )
     return true
   }, [i])
 
@@ -110,9 +121,11 @@ export default function Coachmarks({ patchUi, mobile, onClose }) {
       if (measure()) misses = 0
       // Nothing to point at (e.g. the view toolbar before a wall exists) —
       // don't show an orphaned card, just move on.
-      else if (++misses === 2 && STEPS[i].place !== 'center') advanceRef.current()
+      else if (++misses === TRACK_MISS_LIMIT && STEPS[i].place !== 'center') advanceRef.current()
     }
-    const id = setInterval(tick, 180)
+    // Fast poll: prepare() switches tabs / opens the sheet, so the target is a
+    // render or two away and the step should appear as soon as it exists.
+    const id = setInterval(tick, TRACK_MS)
     tick()
     window.addEventListener('resize', measure)
     return () => {
@@ -131,10 +144,11 @@ export default function Coachmarks({ patchUi, mobile, onClose }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [finish, next])
 
-  // A step that points at something still being laid out shows nothing rather
-  // than an orphaned card floating in the middle of the screen.
+  // Card and spotlight appear together or not at all: a rect from the previous
+  // step would place the card against the wrong element for a frame or two.
   const centred = step?.place === 'center'
-  if (!step || (!rect && !centred)) return null
+  const fresh = rect && rect.forStep === i
+  if (!step || (!fresh && !centred)) return null
 
   // Tooltip goes below the spotlight when there's room, otherwise above; a step
   // with no visible target just centres its card.

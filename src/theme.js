@@ -1,51 +1,55 @@
 // Canvas colours. Konva takes plain strings, not CSS variables, so the palette
 // lives here and mirrors the tokens in styles.css. Change both together.
 //
-// Base palette: #FF9D9D coral · #FFC5AA peach · #EEF8CD lime · #BBF1D2 mint.
-// The pastels are surfaces; the deepened versions below carry the contrast.
+// Premium black & white: neutral greys, pure black, pure white. The wall
+// underneath can be anything from a dark photo to a white blank, so every line
+// drawn over it gets a white halo under a black stroke and reads on either.
 
 export const CANVAS = {
   // wall surface
-  wallShadow: 'rgba(120, 92, 84, 0.22)',
-  wallStroke: 'rgba(120, 92, 84, 0.18)',
+  wallShadow: 'rgba(11, 11, 12, 0.28)',
+  wallStroke: 'rgba(11, 11, 12, 0.14)',
+
+  // under-stroke for anything drawn over unknown content
+  halo: 'rgba(255, 255, 255, 0.9)',
 
   // working-area outline (photo mode)
-  region: '#e0655f',
+  region: '#0b0b0c',
 
   // reference grid
-  gridMinor: 'rgba(163, 133, 122, 0.20)',
-  gridMajor: 'rgba(163, 133, 122, 0.42)',
+  gridMinor: 'rgba(11, 11, 12, 0.10)',
+  gridMajor: 'rgba(11, 11, 12, 0.24)',
 
   // museum eye-line
-  eyeLine: '#4fa97c',
-  eyeTag: '#2f6b52',
-  eyeText: '#eafaf1',
+  eyeLine: '#0b0b0c',
+  eyeTag: '#0b0b0c',
+  eyeText: '#ffffff',
 
   // snap guides
-  guideCenter: '#e0655f',
-  guideEdge: '#4fa97c',
+  guideCenter: '#0b0b0c',
+  guideEdge: '#0b0b0c',
 
   // calibration reference line
-  calib: '#e0655f',
+  calib: '#0b0b0c',
 
   // selection
-  selection: '#e0655f',
+  selection: '#0b0b0c',
 
   // blueprint dimensions
-  dim: '#b4554f',
-  dimTag: '#4a3a3c',
-  dimText: '#fff6f2',
+  dim: '#0b0b0c',
+  dimTag: '#0b0b0c',
+  dimText: '#ffffff',
 
   // obstacles
-  obstacleSolid: 'rgba(122, 100, 94, 0.34)',
-  obstacleOpen: 'rgba(122, 100, 94, 0.13)',
-  obstacleStroke: 'rgba(96, 76, 71, 0.55)',
-  obstacleStrokeSelected: '#e0655f',
-  obstacleTag: '#4a3a3c',
-  obstacleText: '#fff6f2',
+  obstacleSolid: 'rgba(11, 11, 12, 0.30)',
+  obstacleOpen: 'rgba(11, 11, 12, 0.10)',
+  obstacleStroke: 'rgba(11, 11, 12, 0.55)',
+  obstacleStrokeSelected: '#0b0b0c',
+  obstacleTag: '#0b0b0c',
+  obstacleText: '#ffffff',
 
   // frames
-  frameShadow: 'rgba(94, 70, 62, 0.42)',
-  openingFilled: 'rgba(94, 70, 62, 0.26)',
-  openingEmpty: 'rgba(255, 255, 255, 0.8)',
+  frameShadow: 'rgba(11, 11, 12, 0.45)',
+  openingFilled: 'rgba(11, 11, 12, 0.26)',
+  openingEmpty: 'rgba(255, 255, 255, 0.85)',
 }

@@ -1,17 +1,15 @@
 import React, { useMemo } from 'react'
 import { useStore } from '../store.jsx'
-import { fromInches, unitLabel } from '../units.js'
+import { disp, unitLabel } from '../units.js'
 import { hangingPlan, shoppingList } from '../hanging.js'
 import { downloadText } from '../utils.js'
-import { obstacleKind } from '../obstacles.js'
-
-const n1 = (v) => Math.round(v * 10) / 10
+import { obstacleKind, obstacleRect } from '../obstacles.js'
 
 export default function HangingGuide({ onClose }) {
   const { state } = useStore()
   const units = state.units
   const u = unitLabel(units)
-  const f = (inches) => n1(fromInches(inches, units))
+  const f = (inches) => disp(inches, units)
 
   const plan = useMemo(() => hangingPlan(state), [state])
   const list = useMemo(() => shoppingList(state), [state])
@@ -125,22 +123,26 @@ export default function HangingGuide({ onClose }) {
                 aria-label="Plan of the wall with nail positions"
               >
                 <rect x="0" y="0" width={SVG_W} height={SVG_H} fill="#fffdfb" stroke="#d8c7bc" />
-                {state.obstacles.map((o) => (
-                  <g key={o.id}>
-                    <rect
-                      x={o.xIn * k}
-                      y={o.yIn * k}
-                      width={o.wIn * k}
-                      height={o.hIn * k}
-                      fill="#f1e9e3"
-                      stroke="#c9b6aa"
-                      strokeDasharray="4 3"
-                    />
-                    <text x={o.xIn * k + 4} y={o.yIn * k + 14} fontSize="10" fill="#8b7c78">
-                      {obstacleKind(o.kind).label}
-                    </text>
-                  </g>
-                ))}
+                {state.obstacles.map((o) => {
+                  const r = obstacleRect(o, wallHIn, floorOffsetIn)
+                  if (!r) return null
+                  return (
+                    <g key={o.id}>
+                      <rect
+                        x={r.x * k}
+                        y={r.y * k}
+                        width={r.w * k}
+                        height={r.h * k}
+                        fill="#f1e9e3"
+                        stroke="#c9b6aa"
+                        strokeDasharray="4 3"
+                      />
+                      <text x={r.x * k + 4} y={r.y * k + 14} fontSize="10" fill="#8b7c78">
+                        {o.label || obstacleKind(o.kind).label}
+                      </text>
+                    </g>
+                  )
+                })}
                 {rows.map((r, i) => (
                   <g key={r.id}>
                     <rect
@@ -232,7 +234,7 @@ export default function HangingGuide({ onClose }) {
                   <thead>
                     <tr>
                       <th>Frame</th>
-                      <th>Outer ({u === 'cm' ? 'in' : 'in'})</th>
+                      <th>Outer ({u})</th>
                       <th>On wall</th>
                       <th>Owned</th>
                       <th>To buy</th>
