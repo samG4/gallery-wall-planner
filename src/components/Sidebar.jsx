@@ -57,7 +57,7 @@ export default function Sidebar({ ui, patchUi, canvasApi, mobile, showTabs = tru
       <div className="sidebar-scroll" data-tour="panel">
         {/* Keyed on the tab so the panel re-enters on every step change. */}
         <div className="panel-anim" key={ui.tab}>
-          <Panel ui={ui} patchUi={patchUi} canvasApi={canvasApi} />
+          <Panel ui={ui} patchUi={patchUi} canvasApi={canvasApi} mobile={mobile} />
         </div>
       </div>
 

@@ -243,6 +243,9 @@ label.mini { flex: 0 0 auto; }
   box-shadow: inset 0 0 0 1.5px var(--ink); margin-top: 6px;
 }
 .filebtn.secondary:hover { background: var(--panel2); }
+/* Camera + library side by side on mobile. Both are .filebtn (width:100%), so
+   the row splits them evenly. */
+.picker-row > .filebtn { flex: 1 1 0; min-width: 0; padding-left: 4px; padding-right: 4px; }
 
 .hint { font-size: 11.5px; color: var(--muted); margin: 6px 0; line-height: 1.45; }
 .ok { color: var(--ok); }
@@ -549,11 +552,19 @@ label.mini { flex: 0 0 auto; }
 }
 .sheet.open { transform: translateY(0); }
 .sheet .sidebar { width: 100%; border-right: none; background: transparent; }
+/* The grip is a 46x5 pill, but the button around it has to stay thumb-sized —
+   drawing the pill straight onto the button made the mobile min-height rule
+   inflate it into a grey blob. */
 .sheet-handle {
-  width: 46px; height: 5px; border-radius: 999px; background: var(--border);
-  margin: 8px auto 2px; padding: 0; flex: 0 0 auto;
+  width: 72px; height: 26px; min-height: 26px; padding: 0; flex: 0 0 auto;
+  margin: 4px auto 0; background: transparent;
+  display: flex; align-items: center; justify-content: center;
 }
-.sheet-handle:hover { background: var(--accent); }
+.sheet-handle::before {
+  content: ''; width: 46px; height: 5px; border-radius: 999px; background: var(--border);
+}
+.sheet-handle:hover { background: transparent; }
+.sheet-handle:hover::before { background: var(--accent); }
 .tabbar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
   height: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
