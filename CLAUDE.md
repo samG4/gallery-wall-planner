@@ -102,12 +102,31 @@ is an approximation — say so if it ever matters.
 - `Toasts.jsx` — `useToast()(message, kind)`. Use it instead of `alert()`; alerts are a
   modal wall on mobile.
 
+## Look and feel (src/styles.css, src/theme.js)
+Light, warm theme built on #FF9D9D coral · #FFC5AA peach · #EEF8CD lime · #BBF1D2 mint.
+The pastels are surfaces and accents; contrast comes from the deepened tokens
+(`--accent-ink`, `--danger-ink`, `--ok`, `--warn-ink`) — coral fills always take dark
+warm ink, never white text. Konva can't read CSS variables, so canvas colours live in
+`src/theme.js` as `CANVAS`; **change both together.**
+
+## Onboarding (src/components/Coachmarks.jsx)
+First-run tour, replayable from the header `?`. Steps declare a `data-tour` selector, a
+`prepare()` that puts the app into the state the step talks about, and copy. The target
+is tracked by polling (180ms) rather than a one-shot measure, so the spotlight follows
+the mobile sheet animation and layout shifts; a step whose target never appears is
+skipped rather than shown floating. Seen-state is its own localStorage key, so
+resetting a project doesn't replay the tour. **Anything you want the tour to point at
+needs a `data-tour` attribute** — they are the anchors, don't rely on class names.
+
 ## Conventions
 - Keep inches canonical; never store cm.
 - New per-frame or per-photo transforms go on `placed.crop` or `placed` and must be applied in BOTH the editor preview and WallCanvas so they stay WYSIWYG.
 - Anything that reads a frame's opening goes through `openingOf`; anything that reads a
   frame's bbox goes through `frameBoxIn`.
 - Multi-frame changes use `updateManyPlaced` so they undo as one step.
+- `settings.eyeLineIn` is a height above the floor and MUST land on the working area.
+  The reducer's `clampToWall()` enforces that on every `set`/`setSettings`/`load`, so
+  resizing the wall can't strand it. Don't bypass it by mutating settings elsewhere.
 - Modals: header + scrollable body + sticky footer with actions (no button reachable only by scrolling). Full-screen below 860px.
 - Mobile: touch targets ≥38px, respect `env(safe-area-inset-*)`, keep the floating
   selection bar above the tab bar.

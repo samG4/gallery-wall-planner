@@ -135,8 +135,17 @@ export function useMediaQuery(query) {
     const mq = window.matchMedia(query)
     const on = () => setMatch(mq.matches)
     on()
+    // `change` alone is not reliable across every resize path (devtools device
+    // emulation, some embedded webviews), and getting stuck on the desktop shell
+    // at phone width is very visible. Listen for the coarse events too.
     mq.addEventListener('change', on)
-    return () => mq.removeEventListener('change', on)
+    window.addEventListener('resize', on)
+    window.addEventListener('orientationchange', on)
+    return () => {
+      mq.removeEventListener('change', on)
+      window.removeEventListener('resize', on)
+      window.removeEventListener('orientationchange', on)
+    }
   }, [query])
   return match
 }

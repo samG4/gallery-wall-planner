@@ -8,6 +8,7 @@ import OpeningEditor from './components/OpeningEditor.jsx'
 import PhotoCropEditor from './components/PhotoCropEditor.jsx'
 import WallAreaEditor from './components/WallAreaEditor.jsx'
 import HangingGuide from './components/HangingGuide.jsx'
+import Coachmarks, { tourSeen } from './components/Coachmarks.jsx'
 import { useMediaQuery } from './utils.js'
 
 const NUDGE_IN = 0.25
@@ -32,11 +33,20 @@ function Shell() {
     showDims: false, // blueprint dimension annotations
     wallAreaOpen: false, // wall-area selector modal
     guideOpen: false, // hanging guide
+    tourOpen: false, // first-run coachmarks
+    tourRun: 0, // bumped on each replay so the tour restarts at step 1
   })
   const patchUi = useCallback((p) => setUi((u) => ({ ...u, ...p })), [])
 
   const toggleUnits = () =>
     dispatch({ type: 'set', payload: { units: state.units === 'in' ? 'cm' : 'in' } })
+
+  // First visit: run the tour once the app has painted.
+  useEffect(() => {
+    if (tourSeen()) return
+    const t = setTimeout(() => patchUi({ tourOpen: true }), 500)
+    return () => clearTimeout(t)
+  }, [patchUi])
 
   // Warn once when writes start failing, so work isn't silently lost.
   const warnedRef = useRef(false)
@@ -131,12 +141,20 @@ function Shell() {
           <button className="unit-toggle" onClick={toggleUnits} title="Switch units">
             {state.units}
           </button>
+          <button
+            className="ghost"
+            onClick={() => setUi((u) => ({ ...u, tourOpen: true, tourRun: u.tourRun + 1 }))}
+            title="How this works"
+            aria-label="How this works"
+          >
+            ?
+          </button>
         </div>
       </header>
 
       <div className="body">
         {!mobile && <Sidebar ui={ui} patchUi={patchUi} canvasApi={canvasApi} />}
-        <main className="canvas-wrap">
+        <main className="canvas-wrap" data-tour="canvas">
           <WallCanvas ui={ui} patchUi={patchUi} canvasApi={canvasApi} />
           <SelectionBar ui={ui} patchUi={patchUi} />
         </main>
@@ -156,13 +174,14 @@ function Shell() {
             />
             <Sidebar ui={ui} patchUi={patchUi} canvasApi={canvasApi} showTabs={false} />
           </div>
-          <nav className="tabbar" role="tablist" aria-label="Planner steps">
+          <nav className="tabbar" role="tablist" aria-label="Planner steps" data-tour="steps">
             {TABS.map((t) => (
               <button
                 key={t.key}
                 role="tab"
                 aria-selected={ui.sheetOpen && ui.tab === t.key}
                 className={ui.sheetOpen && ui.tab === t.key ? 'on' : ''}
+                data-tour={t.key === 'export' ? 'export' : undefined}
                 onClick={() => openTab(t.key)}
               >
                 <span aria-hidden="true">{t.icon}</span>
@@ -184,6 +203,14 @@ function Shell() {
       )}
       {ui.wallAreaOpen && <WallAreaEditor onClose={() => patchUi({ wallAreaOpen: false })} />}
       {ui.guideOpen && <HangingGuide onClose={() => patchUi({ guideOpen: false })} />}
+      {ui.tourOpen && (
+        <Coachmarks
+          key={ui.tourRun}
+          patchUi={patchUi}
+          mobile={mobile}
+          onClose={() => patchUi({ tourOpen: false })}
+        />
+      )}
     </div>
   )
 }

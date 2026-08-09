@@ -24,6 +24,8 @@ and layout live in `localStorage` on your machine.
   a reference line, or entering the wall width. Blank walls get scale from their size.
 - **Demo wall** — one click loads a finished example so you can try the tool with
   nothing of your own.
+- **Guided tour** — first-run coachmarks point at each part of the UI and say what
+  it does. Replay any time from the **?** in the header.
 
 **Frames**
 
@@ -65,6 +67,8 @@ and layout live in `localStorage` on your machine.
 - **Export** — download the wall as a PNG, or save/reopen the whole project as a JSON
   file (images included) to back it up or move it to another browser.
 - **Units** — toggle inches / cm (inches are canonical internally).
+- **Light, warm interface** — a soft coral / peach / lime / mint palette, because a
+  wall of your own photos shouldn't be planned in a dark IDE.
 - **Undo / redo** — full history with sensible gesture coalescing
   (Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z or Ctrl+Y).
 - **Works on phones** — the layout switches to a full-screen canvas with a bottom tab
@@ -145,8 +149,10 @@ src/
   obstacles.js             sofa / TV / window / door presets
   project.js               project file save + open, demo wall
   units.js                 in <-> cm conversion (edges only)
+  theme.js                 canvas colours (mirrors the CSS tokens)
   components/
     Sidebar.jsx            tabbed panel host
+    Coachmarks.jsx         first-run guided tour
     PanelWall.jsx          step 1 — wall setup + calibration + heights
     PanelFrames.jsx        step 2 — frame library, custom frames, style editing
     PanelPhotos.jsx        step 3 — photo pool + assignment

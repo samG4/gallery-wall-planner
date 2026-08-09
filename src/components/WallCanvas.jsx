@@ -19,6 +19,7 @@ import { buildDimensions } from '../dimensions.js'
 import { openingOf, moulding as mouldingOf, mat as matOf } from '../frames.js'
 import { obstacleKind } from '../obstacles.js'
 import { snapBox } from '../snap.js'
+import { CANVAS } from '../theme.js'
 
 const MIN_ZOOM = 0.25
 const MAX_ZOOM = 8
@@ -354,7 +355,11 @@ export default function WallCanvas({ ui, patchUi, canvasApi }) {
                 width={wallDispW}
                 height={wallDispH}
                 fill={state.wallColor}
-                stroke="#00000022"
+                stroke={CANVAS.wallStroke}
+                shadowColor={CANVAS.wallShadow}
+                shadowBlur={24}
+                shadowOpacity={1}
+                shadowOffsetY={6}
                 name="wall"
               />
             )}
@@ -376,7 +381,7 @@ export default function WallCanvas({ ui, patchUi, canvasApi }) {
                 y={originY}
                 width={inToDisp(wallWIn)}
                 height={inToDisp(wallHIn)}
-                stroke="#3b82f6"
+                stroke={CANVAS.region}
                 strokeWidth={2 / view.zoom}
                 dash={[10 / view.zoom, 6 / view.zoom]}
                 listening={false}
@@ -406,16 +411,16 @@ export default function WallCanvas({ ui, patchUi, canvasApi }) {
                     originX + inToDisp(wallWIn),
                     originY + inToDisp(eyeLineY),
                   ]}
-                  stroke="#22c55e"
+                  stroke={CANVAS.eyeLine}
                   strokeWidth={1.5 / view.zoom}
                   dash={[12 / view.zoom, 8 / view.zoom]}
                 />
                 <Label x={originX + 4} y={originY + inToDisp(eyeLineY) - 18 / view.zoom} scaleX={1 / view.zoom} scaleY={1 / view.zoom}>
-                  <Tag fill="#065f46" cornerRadius={3} opacity={0.9} />
+                  <Tag fill={CANVAS.eyeTag} cornerRadius={3} opacity={0.92} />
                   <Text
                     text={`eye-line ${fmtLen(state.settings.eyeLineIn, state.units)}`}
                     fontSize={11}
-                    fill="#d1fae5"
+                    fill={CANVAS.eyeText}
                     padding={3}
                   />
                 </Label>
@@ -502,7 +507,7 @@ export default function WallCanvas({ ui, patchUi, canvasApi }) {
                     ? [originX + inToDisp(g.at), originY - 24, originX + inToDisp(g.at), originY + inToDisp(wallHIn) + 24]
                     : [originX - 24, originY + inToDisp(g.at), originX + inToDisp(wallWIn) + 24, originY + inToDisp(g.at)]
                 }
-                stroke={g.kind === 'center' ? '#f472b6' : '#38bdf8'}
+                stroke={g.kind === 'center' ? CANVAS.guideCenter : CANVAS.guideEdge}
                 strokeWidth={1 / view.zoom}
                 dash={[6 / view.zoom, 4 / view.zoom]}
                 listening={false}
@@ -515,13 +520,13 @@ export default function WallCanvas({ ui, patchUi, canvasApi }) {
                 {calB && (
                   <Line
                     points={[calA.x, calA.y, calB.x, calB.y]}
-                    stroke="#ff3b6b"
+                    stroke={CANVAS.calib}
                     strokeWidth={3 / view.zoom}
                     dash={[8, 4]}
                   />
                 )}
-                <Circle x={calA.x} y={calA.y} radius={5 / view.zoom} fill="#ff3b6b" />
-                {calB && <Circle x={calB.x} y={calB.y} radius={5 / view.zoom} fill="#ff3b6b" />}
+                <Circle x={calA.x} y={calA.y} radius={5 / view.zoom} fill={CANVAS.calib} />
+                {calB && <Circle x={calB.x} y={calB.y} radius={5 / view.zoom} fill={CANVAS.calib} />}
               </>
             )}
           </Group>
@@ -530,7 +535,7 @@ export default function WallCanvas({ ui, patchUi, canvasApi }) {
 
       {/* view toolbar */}
       {state.wallMode && (
-        <div className="view-toolbar">
+        <div className="view-toolbar" data-tour="viewtools">
           <button
             className={ui.showGrid ? 'active' : 'ghost'}
             onClick={() => patchUi({ showGrid: !ui.showGrid })}
@@ -707,9 +712,9 @@ function PlacedFrameNode({
               height={fh}
               fill={m.color}
               cornerRadius={Math.min(2, mould / 3)}
-              shadowColor="#000"
+              shadowColor={CANVAS.frameShadow}
               shadowBlur={shadows ? 12 : 0}
-              shadowOpacity={shadows ? 0.45 : 0}
+              shadowOpacity={shadows ? 0.75 : 0}
               shadowOffsetX={shadows ? 2 : 0}
               shadowOffsetY={shadows ? 5 : 0}
             />
@@ -741,9 +746,9 @@ function PlacedFrameNode({
             image={frameImg}
             width={fw}
             height={fh}
-            shadowColor="#000"
+            shadowColor={CANVAS.frameShadow}
             shadowBlur={shadows ? 12 : 0}
-            shadowOpacity={shadows ? 0.45 : 0}
+            shadowOpacity={shadows ? 0.75 : 0}
             shadowOffsetX={shadows ? 2 : 0}
             shadowOffsetY={shadows ? 5 : 0}
           />
@@ -772,7 +777,7 @@ function PlacedFrameNode({
             y={opening.y}
             width={opening.w}
             height={opening.h}
-            stroke={photoImg ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.7)'}
+            stroke={photoImg ? CANVAS.openingFilled : CANVAS.openingEmpty}
             strokeWidth={photoImg ? 1 : 1}
             dash={photoImg ? undefined : [6, 4]}
             listening={false}
@@ -783,7 +788,7 @@ function PlacedFrameNode({
           <Rect
             width={fw}
             height={fh}
-            stroke="#3b82f6"
+            stroke={CANVAS.selection}
             strokeWidth={3 / zoom}
             listening={false}
           />
@@ -798,7 +803,9 @@ function PlacedFrameNode({
           rotationSnaps={[0, 45, 90, 135, 180, 225, 270, 315]}
           rotationSnapTolerance={5}
           anchorSize={14}
-          borderStroke="#3b82f6"
+          borderStroke={CANVAS.selection}
+          anchorStroke={CANVAS.selection}
+          anchorFill="#fffaf7"
         />
       )}
     </>
@@ -846,20 +853,20 @@ function ObstacleNode({
       <Rect
         width={w}
         height={h}
-        fill={k.solid ? 'rgba(17,24,39,0.55)' : 'rgba(148,163,184,0.22)'}
-        stroke={selected ? '#f59e0b' : 'rgba(226,232,240,0.75)'}
+        fill={k.solid ? CANVAS.obstacleSolid : CANVAS.obstacleOpen}
+        stroke={selected ? CANVAS.obstacleStrokeSelected : CANVAS.obstacleStroke}
         strokeWidth={(selected ? 2.5 : 1.5) / zoom}
         dash={k.solid ? undefined : [8 / zoom, 5 / zoom]}
       />
       <Label x={4 / zoom} y={4 / zoom} scaleX={1 / zoom} scaleY={1 / zoom} listening={false}>
-        <Tag fill="#0f172a" cornerRadius={3} opacity={0.85} />
+        <Tag fill={CANVAS.obstacleTag} cornerRadius={3} opacity={0.88} />
         <Text
           text={`${k.icon} ${obstacle.label || k.label} · ${fmtLen(obstacle.wIn, units)}×${fmtLen(
             obstacle.hIn,
             units
           )}`}
           fontSize={11}
-          fill="#e2e8f0"
+          fill={CANVAS.obstacleText}
           padding={3}
         />
       </Label>
@@ -891,7 +898,7 @@ function GridOverlay({ offX, offY, wallWIn, wallHIn, inToDisp, units, zoom }) {
       <Line
         key={`v${i}`}
         points={[x, offY, x, offY + hPx]}
-        stroke={major ? 'rgba(90,120,170,0.55)' : 'rgba(90,120,170,0.28)'}
+        stroke={major ? CANVAS.gridMajor : CANVAS.gridMinor}
         strokeWidth={1 / zoom}
         listening={false}
       />
@@ -904,7 +911,7 @@ function GridOverlay({ offX, offY, wallWIn, wallHIn, inToDisp, units, zoom }) {
       <Line
         key={`h${j}`}
         points={[offX, y, offX + wPx, y]}
-        stroke={major ? 'rgba(90,120,170,0.55)' : 'rgba(90,120,170,0.28)'}
+        stroke={major ? CANVAS.gridMajor : CANVAS.gridMinor}
         strokeWidth={1 / zoom}
         listening={false}
       />
@@ -932,9 +939,9 @@ function DimSeg({ type, x1, y1, x2, y2, text, zoom = 1 }) {
   const ly = type === 'h' ? midY - 16 / zoom : midY
   return (
     <Group listening={false}>
-      <Line points={[x1, y1, x2, y2]} stroke="#e11d48" strokeWidth={1.2 / zoom} />
+      <Line points={[x1, y1, x2, y2]} stroke={CANVAS.dim} strokeWidth={1.2 / zoom} />
       {ticks.map((p, i) => (
-        <Line key={i} points={p} stroke="#e11d48" strokeWidth={1.2 / zoom} />
+        <Line key={i} points={p} stroke={CANVAS.dim} strokeWidth={1.2 / zoom} />
       ))}
       <Label
         x={lx}
@@ -943,8 +950,8 @@ function DimSeg({ type, x1, y1, x2, y2, text, zoom = 1 }) {
         scaleY={1 / zoom}
         offsetX={type === 'h' ? text.length * 3.2 : 0}
       >
-        <Tag fill="#111827" cornerRadius={3} opacity={0.92} />
-        <Text text={text} fontSize={11} fill="#fff" padding={3} />
+        <Tag fill={CANVAS.dimTag} cornerRadius={3} opacity={0.94} />
+        <Text text={text} fontSize={11} fill={CANVAS.dimText} padding={3} />
       </Label>
     </Group>
   )

@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { workArea } from './utils.js'
 
 const KEY = 'gallery-wall-planner:v2'
 const KEY_V1 = 'gallery-wall-planner:v1'
@@ -69,14 +70,26 @@ export function migrateDoc(raw) {
   return doc
 }
 
+// The eye-line is stored as a height above the floor, but it only means anything
+// if it lands on the working area. Resizing the wall or moving the floor offset
+// can strand it, so every action that could do either runs through here.
+function clampToWall(s) {
+  const { wallHIn } = workArea(s)
+  if (!(wallHIn > 0)) return s
+  const floorOffsetIn = Math.max(0, s.settings.floorOffsetIn || 0)
+  const eyeLineIn = Math.min(floorOffsetIn + wallHIn, Math.max(floorOffsetIn, s.settings.eyeLineIn))
+  if (eyeLineIn === s.settings.eyeLineIn && floorOffsetIn === s.settings.floorOffsetIn) return s
+  return { ...s, settings: { ...s.settings, eyeLineIn, floorOffsetIn } }
+}
+
 function reducer(state, action) {
   switch (action.type) {
     case 'load':
-      return { ...emptyDoc(), ...action.payload }
+      return clampToWall({ ...emptyDoc(), ...action.payload })
     case 'set':
-      return { ...state, ...action.payload }
+      return clampToWall({ ...state, ...action.payload })
     case 'setSettings':
-      return { ...state, settings: { ...state.settings, ...action.payload } }
+      return clampToWall({ ...state, settings: { ...state.settings, ...action.payload } })
     case 'addFrameStyle':
       return { ...state, frameStyles: [...state.frameStyles, action.style] }
     case 'updateFrameStyle':

@@ -124,7 +124,7 @@ export default function HangingGuide({ onClose }) {
                 role="img"
                 aria-label="Plan of the wall with nail positions"
               >
-                <rect x="0" y="0" width={SVG_W} height={SVG_H} fill="#ffffff" stroke="#94a3b8" />
+                <rect x="0" y="0" width={SVG_W} height={SVG_H} fill="#fffdfb" stroke="#d8c7bc" />
                 {state.obstacles.map((o) => (
                   <g key={o.id}>
                     <rect
@@ -132,11 +132,11 @@ export default function HangingGuide({ onClose }) {
                       y={o.yIn * k}
                       width={o.wIn * k}
                       height={o.hIn * k}
-                      fill="#e2e8f0"
-                      stroke="#94a3b8"
+                      fill="#f1e9e3"
+                      stroke="#c9b6aa"
                       strokeDasharray="4 3"
                     />
-                    <text x={o.xIn * k + 4} y={o.yIn * k + 14} fontSize="10" fill="#475569">
+                    <text x={o.xIn * k + 4} y={o.yIn * k + 14} fontSize="10" fill="#8b7c78">
                       {obstacleKind(o.kind).label}
                     </text>
                   </g>
@@ -148,15 +148,15 @@ export default function HangingGuide({ onClose }) {
                       y={r.topIn * k}
                       width={r.boxWIn * k}
                       height={r.boxHIn * k}
-                      fill="#f8fafc"
-                      stroke="#0f172a"
+                      fill="#ffffff"
+                      stroke="#3f3436"
                     />
                     <text
                       x={(r.leftIn + r.boxWIn / 2) * k}
                       y={(r.topIn + r.boxHIn / 2) * k + 4}
                       fontSize="11"
                       textAnchor="middle"
-                      fill="#0f172a"
+                      fill="#3f3436"
                     >
                       {i + 1}
                     </text>
@@ -167,7 +167,7 @@ export default function HangingGuide({ onClose }) {
                           y1={h.yIn * k}
                           x2={h.xIn * k + 4}
                           y2={h.yIn * k}
-                          stroke="#dc2626"
+                          stroke="#e0655f"
                           strokeWidth="1.5"
                         />
                         <line
@@ -175,7 +175,7 @@ export default function HangingGuide({ onClose }) {
                           y1={h.yIn * k - 4}
                           x2={h.xIn * k}
                           y2={h.yIn * k + 4}
-                          stroke="#dc2626"
+                          stroke="#e0655f"
                           strokeWidth="1.5"
                         />
                       </g>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useStore } from '../store.jsx'
-import { readImageFile } from '../utils.js'
+import { readImageFile, workArea, clamp } from '../utils.js'
 import { toInches, fromInches, unitLabel } from '../units.js'
 import { useToast } from './Toasts.jsx'
 import { demoDoc } from '../project.js'
@@ -74,6 +74,14 @@ export default function PanelWall({ ui, patchUi }) {
 
   const scaleReady = !!state.pixelsPerInch
   const setCfg = (payload) => dispatch({ type: 'setSettings', payload })
+
+  // The eye-line is measured from the floor, but it has to land on the working
+  // area — otherwise the guide is drawn nowhere and layouts silently ignore it.
+  const { wallHIn } = workArea(state)
+  const hasWall = wallHIn > 0
+  const eyeMinIn = state.settings.floorOffsetIn
+  const eyeMaxIn = hasWall ? state.settings.floorOffsetIn + wallHIn : Number.MAX_SAFE_INTEGER
+  const disp = (inches) => Math.round(fromInches(inches, units) * 10) / 10
 
   return (
     <section>
@@ -194,7 +202,7 @@ export default function PanelWall({ ui, patchUi }) {
       </div>
 
       {/* Height references — these drive the eye-line and the hanging guide */}
-      <div className="calib-method">
+      <div className="calib-method" data-tour="heights">
         <strong>Heights</strong>
         <p className="hint">
           Used for the eye-line guide and for nail heights in the hanging guide.
@@ -203,22 +211,42 @@ export default function PanelWall({ ui, patchUi }) {
           <label className="mini">Eye-line</label>
           <input
             type="number"
-            value={Math.round(fromInches(state.settings.eyeLineIn, units) * 10) / 10}
-            onChange={(e) =>
-              setCfg({ eyeLineIn: toInches(parseFloat(e.target.value) || 0, units) })
-            }
+            min={disp(eyeMinIn)}
+            max={disp(eyeMaxIn)}
+            value={disp(state.settings.eyeLineIn)}
+            onChange={(e) => {
+              const v = toInches(parseFloat(e.target.value) || 0, units)
+              setCfg({ eyeLineIn: clamp(v, eyeMinIn, eyeMaxIn) })
+            }}
             aria-label="Eye-line height from floor"
           />
           <span className="mini">{unitLabel(units)} from floor</span>
         </div>
+        {hasWall && (
+          <p className="hint">
+            Must sit on the wall: {disp(eyeMinIn)}–{disp(eyeMaxIn)} {unitLabel(units)} from the
+            floor.
+          </p>
+        )}
         <div className="row">
           <label className="mini">Area bottom</label>
           <input
             type="number"
-            value={Math.round(fromInches(state.settings.floorOffsetIn, units) * 10) / 10}
-            onChange={(e) =>
-              setCfg({ floorOffsetIn: toInches(parseFloat(e.target.value) || 0, units) })
-            }
+            min="0"
+            value={disp(state.settings.floorOffsetIn)}
+            onChange={(e) => {
+              const floorOffsetIn = Math.max(0, toInches(parseFloat(e.target.value) || 0, units))
+              // Moving the wall up or down can strand the eye-line off it; keep it on.
+              const patch = { floorOffsetIn }
+              if (hasWall) {
+                patch.eyeLineIn = clamp(
+                  state.settings.eyeLineIn,
+                  floorOffsetIn,
+                  floorOffsetIn + wallHIn
+                )
+              }
+              setCfg(patch)
+            }}
             aria-label="Height of the working area's bottom edge above the floor"
           />
           <span className="mini">{unitLabel(units)} above floor</span>

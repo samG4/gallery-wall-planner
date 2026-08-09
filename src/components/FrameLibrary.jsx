@@ -48,7 +48,7 @@ export default function FrameLibrary({ onPlace }) {
   const fmt = (inches) => Math.round(fromInches(inches, units) * 10) / 10
 
   return (
-    <div className="frame-library">
+    <div className="frame-library" data-tour="frames">
       <div className="lib-controls">
         <div className="row">
           <label className="mini">Moulding</label>

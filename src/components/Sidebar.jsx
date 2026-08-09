@@ -26,13 +26,14 @@ export default function Sidebar({ ui, patchUi, canvasApi, showTabs = true }) {
   return (
     <aside className="sidebar">
       {showTabs && (
-        <nav className="tabstrip" role="tablist" aria-label="Planner steps">
+        <nav className="tabstrip" role="tablist" aria-label="Planner steps" data-tour="steps">
           {TABS.map((t) => (
             <button
               key={t.key}
               role="tab"
               aria-selected={ui.tab === t.key}
               className={ui.tab === t.key ? 'on' : ''}
+              data-tour={t.key === 'export' ? 'export' : undefined}
               onClick={() => patchUi({ tab: t.key })}
             >
               <span aria-hidden="true">{t.icon}</span>
@@ -42,7 +43,7 @@ export default function Sidebar({ ui, patchUi, canvasApi, showTabs = true }) {
         </nav>
       )}
 
-      <div className="sidebar-scroll">
+      <div className="sidebar-scroll" data-tour="panel">
         <Panel ui={ui} patchUi={patchUi} canvasApi={canvasApi} />
       </div>
 
