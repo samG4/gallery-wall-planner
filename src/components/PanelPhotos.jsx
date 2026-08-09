@@ -3,7 +3,7 @@ import { useStore, uid } from '../store.jsx'
 import { readImageFile } from '../utils.js'
 import { useToast } from './Toasts.jsx'
 
-export default function PanelPhotos({ ui, patchUi }) {
+export default function PanelPhotos({ ui, patchUi = () => {} }) {
   const { state, dispatch } = useStore()
   const toast = useToast()
   const selected = ui.selectedIds || []
@@ -18,13 +18,23 @@ export default function PanelPhotos({ ui, patchUi }) {
     if (files.length) toast(`Added ${files.length} photo${files.length > 1 ? 's' : ''}.`, 'ok')
   }
 
+  // Tapping a photo works whichever order you did things in: it fills the frames
+  // you selected, or — if you selected nothing — the first frame still empty.
   function assignPhoto(photoId) {
-    if (!selected.length) {
-      toast('Select a frame on the wall first, then tap a photo.', 'warn')
-      return
+    let targets = selected
+    if (!targets.length) {
+      if (!state.placedFrames.length) {
+        return toast('Add a frame to the wall first, then tap a photo.', 'warn')
+      }
+      const empty = state.placedFrames.find((p) => !p.photoId)
+      if (!empty) {
+        return toast('Every frame is filled — select one on the wall to swap its photo.', 'info')
+      }
+      targets = [empty.id]
+      patchUi({ selectedIds: targets, selectedObstacleId: null })
     }
     const patches = {}
-    for (const id of selected) patches[id] = { photoId }
+    for (const id of targets) patches[id] = { photoId }
     dispatch({ type: 'updateManyPlaced', patches })
   }
 
@@ -48,7 +58,8 @@ export default function PanelPhotos({ ui, patchUi }) {
         <input type="file" accept="image/*" multiple onChange={onPhotoUpload} hidden />
       </label>
       <p className="hint">
-        Select a frame on the wall, then tap a photo to drop it inside. Crop it to fit after.
+        Tap a photo to drop it into the selected frame — or into the first empty one if nothing is
+        selected. Crop it to fit after.
       </p>
       <div className="row">
         <button className="ghost" onClick={autoFill} disabled={!state.photos.length}>
@@ -79,7 +90,12 @@ export default function PanelPhotos({ ui, patchUi }) {
           </div>
         ))}
       </div>
-      {!state.photos.length && <p className="hint">No photos yet — frames show an empty mat.</p>}
+      {!state.photos.length && (
+        <p className="hint">
+          No photos yet — frames show an empty mat, which is enough to judge the arrangement. This
+          step is optional.
+        </p>
+      )}
     </section>
   )
 }

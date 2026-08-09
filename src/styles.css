@@ -27,6 +27,13 @@
   --canvas-bg: #e6e6ea;
   --ring: #0b0b0c;
 
+  /* Motion. One easing curve for everything that moves, three speeds:
+     1 = feedback under the finger, 2 = things arriving, 3 = things travelling. */
+  --ease: cubic-bezier(.2, .7, .3, 1);
+  --dur-1: .13s;
+  --dur-2: .22s;
+  --dur-3: .34s;
+
   --shadow-sm: 0 1px 2px rgba(11, 11, 12, 0.08);
   --shadow-md: 0 6px 20px rgba(11, 11, 12, 0.12);
   --shadow-lg: 0 18px 48px rgba(11, 11, 12, 0.20);
@@ -71,10 +78,42 @@ body {
 .tabstrip button {
   flex: 1; background: transparent; color: var(--muted); border-radius: 9px;
   padding: 7px 4px; font-size: 11px; display: flex; flex-direction: column; gap: 2px;
-  align-items: center; line-height: 1.1; font-weight: 600;
+  align-items: center; line-height: 1.1; font-weight: 600; position: relative;
 }
 .tabstrip button:hover { background: #fff; color: var(--text); }
 .tabstrip button.on { background: var(--accent); color: var(--accent-ink); box-shadow: var(--shadow-sm); }
+
+/* Step ticked off. Sits in the corner so it never reflows the label. */
+.tab-done {
+  position: absolute; top: 3px; right: 5px;
+  font-size: 9px; line-height: 1; font-weight: 700; opacity: .55;
+}
+.tabstrip button.on .tab-done, .tabbar button.on .tab-done { opacity: .8; }
+
+/* "What now?" bar. The one thing that keeps a first-timer moving through the
+   five steps — and the only place that promises the printed nail map up front. */
+.nextbar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  background: var(--panel); border-top: 1px solid var(--border);
+}
+.nextbar-copy { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 1px; }
+.nextbar-kicker {
+  font-size: 9.5px; text-transform: uppercase; letter-spacing: .9px;
+  color: var(--muted); font-weight: 700;
+}
+.nextbar strong { font-size: 13px; color: var(--text); line-height: 1.25; }
+.nextbar-hint { font-size: 11px; color: var(--muted); line-height: 1.35; }
+.nextbar button { flex: 0 0 auto; padding: 9px 13px; box-shadow: var(--shadow-sm); }
+
+.nextbar.floating {
+  position: fixed; z-index: 35;
+  left: 8px; right: 8px;
+  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 8px);
+  border: 1px solid var(--border); border-radius: 14px;
+  box-shadow: var(--shadow-md);
+}
+.nextbar.floating .nextbar-hint { display: none; }
 
 .support-bar {
   padding: 10px 12px;
@@ -108,9 +147,23 @@ body {
 .empty-state {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
   color: var(--muted); pointer-events: none; text-align: center; padding: 24px;
+  /* Konva makes its own container position:relative, so without this the stage
+     paints over the empty state and swallows the clicks. */
+  z-index: 2;
 }
 .empty-title { font-size: 21px; margin: 0 0 6px; color: var(--text); font-weight: 700; }
-.empty-sub { font-size: 14px; margin: 0; max-width: 380px; line-height: 1.5; }
+.empty-sub { font-size: 14px; margin: 0 auto; max-width: 380px; line-height: 1.5; }
+/* The wrapper kills pointer events so canvas drags pass through; the buttons
+   have to opt back in. */
+.empty-actions {
+  display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
+  margin-top: 16px; pointer-events: auto;
+}
+button.ghost-outline {
+  background: var(--panel); color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+button.ghost-outline:hover { background: var(--panel2); box-shadow: inset 0 0 0 1px var(--ink); }
 
 button {
   background: var(--accent); color: var(--accent-ink); border: none; border-radius: 9px;
@@ -143,6 +196,8 @@ button.addnew {
 }
 button.addnew:hover { background: #fff; border-color: var(--accent); }
 button.cta { width: 100%; padding: 12px; font-weight: 700; font-size: 14px; margin-bottom: 10px; box-shadow: var(--shadow-sm); }
+/* A CTA that follows an input row needs air above it, or it reads as part of the row. */
+button.cta.spaced { margin-top: 12px; }
 button.ghost {
   background: var(--panel); color: var(--text);
   box-shadow: inset 0 0 0 1px var(--border); min-width: 34px;
@@ -482,7 +537,7 @@ label.mini { flex: 0 0 auto; }
 .tabbar button {
   flex: 1; background: transparent; color: var(--muted); border-radius: 0;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 2px; font-size: 10px; padding: 0; font-weight: 600;
+  gap: 2px; font-size: 10px; padding: 0; font-weight: 600; position: relative;
 }
 .tabbar button span[aria-hidden] { font-size: 17px; line-height: 1; }
 .tabbar button.on { color: var(--text); background: var(--panel2); box-shadow: inset 0 2px 0 var(--ink); }
@@ -518,6 +573,87 @@ label.mini { flex: 0 0 auto; }
 @media (max-width: 420px) {
   .brand-text { display: none; }
   .size-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ---------------- motion ----------------
+   Things arrive from where they came from and settle; nothing loops, nothing
+   moves more than ~10px, and the canvas itself never animates — it's a ruler,
+   and a ruler that slides is a lie. Durations/easing come from the tokens above. */
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(10px) scale(.99); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes bar-in {
+  from { opacity: 0; transform: translate(-50%, 10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+@keyframes pop-in {
+  0% { opacity: 0; transform: scale(.4); }
+  70% { opacity: 1; transform: scale(1.18); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* Panel content re-enters on every tab change (keyed in Sidebar), so switching
+   steps feels like moving forward rather than a hard cut. */
+.panel-anim { animation: fade-up var(--dur-2) var(--ease) both; }
+.empty-state > div { animation: fade-up var(--dur-3) var(--ease) both; }
+.nextbar-copy { animation: fade-up var(--dur-2) var(--ease) both; }
+.nextbar.floating { animation: rise-in var(--dur-2) var(--ease) both; }
+.toast { animation: rise-in var(--dur-2) var(--ease) both; }
+.modal-backdrop { animation: fade-in var(--dur-2) var(--ease) both; }
+.modal { animation: rise-in var(--dur-3) var(--ease) both; }
+.coach-tip { animation: fade-up var(--dur-2) var(--ease) both; }
+.frame-actionbar { animation: bar-in var(--dur-2) var(--ease) both; }
+.tab-done { animation: pop-in var(--dur-3) var(--ease) both; }
+.obstacle-list li { animation: fade-up var(--dur-2) var(--ease) both; }
+.photo-cell { animation: fade-in var(--dur-2) var(--ease) both; }
+
+/* Hover lift on the things you pick from. Kept off :active so a press still
+   reads as a press. */
+.chip, .size-chip, .layout-btns button, .photo-cell img, .swatch {
+  transition: transform var(--dur-1) var(--ease), background var(--dur-1) var(--ease),
+    box-shadow var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease);
+}
+.chip:hover, .size-chip:hover, .layout-btns button:hover, .swatch:hover {
+  transform: translateY(-1px);
+}
+.chip:active, .size-chip:active, .layout-btns button:active, .swatch:active {
+  transform: translateY(0);
+}
+.photo-cell img:hover { transform: scale(1.03); }
+
+/* The active tab is an inversion, so let the icon acknowledge the switch. */
+.tabstrip button span[aria-hidden], .tabbar button span[aria-hidden] {
+  transition: transform var(--dur-2) var(--ease);
+}
+.tabstrip button.on span[aria-hidden], .tabbar button.on span[aria-hidden] {
+  transform: scale(1.14);
+}
+
+.sheet { transition: transform var(--dur-3) var(--ease); }
+.sheet-backdrop { animation: fade-in var(--dur-2) var(--ease) both; }
+.coach-hole {
+  transition: top var(--dur-2) var(--ease), left var(--dur-2) var(--ease),
+    width var(--dur-2) var(--ease), height var(--dur-2) var(--ease);
+}
+
+/* Respect the OS setting: no motion, but keep every end state reachable. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* ---------------- print: the hanging guide only ---------------- */

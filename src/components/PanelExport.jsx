@@ -1,4 +1,4 @@
-import React, { useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useStore } from '../store.jsx'
 import { download, downloadText } from '../utils.js'
 import { exportProject, importProject, PROJECT_EXT } from '../project.js'
@@ -11,8 +11,17 @@ export default function PanelExport({ ui, patchUi, canvasApi }) {
   const { state, dispatch, storageFull, docBytes } = useStore()
   const toast = useToast()
   const fileRef = useRef(null)
+  // Reset asks twice in place rather than through a native confirm(), which is a
+  // full-screen modal wall on mobile and gets swallowed in embedded browsers.
+  const [confirmReset, setConfirmReset] = useState(false)
 
   const pct = Math.min(100, Math.round((docBytes / QUOTA_BYTES) * 100))
+
+  useEffect(() => {
+    if (!confirmReset) return
+    const t = setTimeout(() => setConfirmReset(false), 8000)
+    return () => clearTimeout(t)
+  }, [confirmReset])
 
   function savePNG() {
     const url = canvasApi?.current?.exportPNG?.(2)
@@ -102,14 +111,23 @@ export default function PanelExport({ ui, patchUi, canvasApi }) {
         <button
           className="danger"
           onClick={() => {
-            if (confirm('Reset everything? This clears the wall, frames and photos.')) {
-              dispatch({ type: 'reset' })
-              patchUi({ selectedIds: [], selectedObstacleId: null })
-            }
+            if (!confirmReset) return setConfirmReset(true)
+            dispatch({ type: 'reset' })
+            patchUi({ selectedIds: [], selectedObstacleId: null, tab: 'wall' })
+            setConfirmReset(false)
+            toast('Project reset.', 'ok')
           }}
         >
-          Reset project
+          {confirmReset ? 'Tap again to wipe everything' : 'Reset project'}
         </button>
+        {confirmReset && (
+          <p className="hint">
+            This clears the wall, frames and photos.{' '}
+            <button className="linkbtn" onClick={() => setConfirmReset(false)}>
+              cancel
+            </button>
+          </p>
+        )}
       </div>
     </section>
   )

@@ -1,22 +1,22 @@
 import React, { useEffect, useState } from 'react'
 import { useStore, uid } from '../store.jsx'
-import { fromInches, toInches, unitLabel } from '../units.js'
+import { disp, stepFor, toInches, unitLabel } from '../units.js'
 import { frameBoxIn } from '../utils.js'
 import { align, distribute, evenGap } from '../align.js'
 import { obstacleKind } from '../obstacles.js'
 import { workArea } from '../utils.js'
 
 // Number field that lets you type freely and only commits a valid value.
-function NumInput({ valueIn, units, onCommitIn, title, width = 62, step = 0.5 }) {
+function NumInput({ valueIn, units, onCommitIn, title, width = 62, step }) {
   const [txt, setTxt] = useState('')
   const [live, setLive] = useState(false)
   useEffect(() => {
-    if (!live) setTxt(String(Math.round(fromInches(valueIn, units) * 100) / 100))
+    if (!live) setTxt(String(disp(valueIn, units)))
   }, [valueIn, units, live])
   return (
     <input
       type="number"
-      step={step}
+      step={step ?? stepFor(units)}
       className="numin"
       style={{ width }}
       title={title}
@@ -166,14 +166,14 @@ export default function SelectionBar({ ui, patchUi }) {
             <button className="ghost" title="Space evenly down" onClick={() => applyPatches(distribute(items, 'v'))}>↕ even</button>
             <button
               className="ghost"
-              title={`Set the standard gap (${Math.round(fromInches(state.settings.gapIn, units) * 10) / 10}${u}) horizontally`}
+              title={`Set the standard gap (${disp(state.settings.gapIn, units)}${u}) horizontally`}
               onClick={() => applyPatches(evenGap(items, 'h', state.settings.gapIn))}
             >
               ↔ gap
             </button>
             <button
               className="ghost"
-              title={`Set the standard gap (${Math.round(fromInches(state.settings.gapIn, units) * 10) / 10}${u}) vertically`}
+              title={`Set the standard gap (${disp(state.settings.gapIn, units)}${u}) vertically`}
               onClick={() => applyPatches(evenGap(items, 'v', state.settings.gapIn))}
             >
               ↕ gap

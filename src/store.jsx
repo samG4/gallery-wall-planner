@@ -55,6 +55,8 @@ export const uid = (p = 'id') => `${p}_${Date.now().toString(36)}_${_id++}`
 export function migrateDoc(raw) {
   if (!raw || typeof raw !== 'object') return emptyDoc()
   const doc = { ...emptyDoc(), ...raw }
+  // The metric display unit used to be centimetres; it's metres now.
+  if (doc.units !== 'm' && doc.units !== 'in') doc.units = doc.units === 'cm' ? 'm' : 'in'
   doc.settings = { ...defaultSettings, ...(raw.settings || {}) }
   doc.obstacles = migrateObstacles(Array.isArray(raw.obstacles) ? raw.obstacles : [], doc)
   doc.frameStyles = (raw.frameStyles || []).map((s) => ({

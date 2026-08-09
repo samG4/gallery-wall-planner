@@ -27,8 +27,8 @@ const markSeen = () => {
 const STEPS = [
   {
     target: '[data-tour="steps"]',
-    title: 'Five steps, in order',
-    body: 'Wall, frames, photos, arrange, export. Work through them in order and you can’t get lost.',
+    title: 'Five steps, ending at the wall',
+    body: 'Wall, frames, photos, arrange, hang it. The last step prints a sheet with every nail position on it — that’s what this is for. The bar at the bottom always tells you the next step.',
     prepare: ({ patchUi }) => patchUi({ tab: 'wall', sheetOpen: false }),
   },
   {
@@ -58,7 +58,7 @@ const STEPS = [
   },
   {
     target: '[data-tour="export"]',
-    title: 'Then take it to the wall',
+    title: 'This is the point of it',
     body: 'The hanging guide prints every nail position, measured from the wall edges and up from the floor.',
     prepare: ({ patchUi, mobile }) => patchUi({ tab: 'export', sheetOpen: mobile }),
   },

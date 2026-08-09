@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useStore, uid } from '../store.jsx'
-import { fromInches, unitLabel } from '../units.js'
+import { disp, unitLabel } from '../units.js'
 import {
   ART_SIZES,
   MOULDINGS,
@@ -46,7 +46,7 @@ export default function FrameLibrary({ onPlace }) {
     toast(`Added ${style.name} — ${fmt(style.outerW)}×${fmt(style.outerH)} ${u} outer.`, 'ok')
   }
 
-  const fmt = (inches) => Math.round(fromInches(inches, units) * 10) / 10
+  const fmt = (inches) => disp(inches, units)
 
   return (
     <div className="frame-library" data-tour="frames">

@@ -14,12 +14,14 @@ import {
 } from 'react-konva'
 import { useStore } from '../store.jsx'
 import { useImage, photoPlacement, workArea, frameBoxIn, clamp } from '../utils.js'
-import { toInches, fromInches, unitLabel, IN_PER_CM } from '../units.js'
+import { toInches, disp, stepFor, unitLabel, IN_PER_M } from '../units.js'
 import { buildDimensions } from '../dimensions.js'
 import { openingOf, moulding as mouldingOf, mat as matOf } from '../frames.js'
 import { obstacleKind, obstacleRect } from '../obstacles.js'
 import { snapBox } from '../snap.js'
 import { CANVAS } from '../theme.js'
+import { demoDoc } from '../project.js'
+import { useToast } from './Toasts.jsx'
 
 // Guides are drawn over a wall that might be a dark photo or a white blank, so
 // every line goes down twice: a white halo, then the black stroke on top.
@@ -61,6 +63,7 @@ const MAX_ZOOM = 8
 
 export default function WallCanvas({ ui, patchUi, canvasApi }) {
   const { state, dispatch } = useStore()
+  const toast = useToast()
   const wrapRef = useRef(null)
   const stageRef = useRef(null)
   const contentRef = useRef(null)
@@ -354,8 +357,23 @@ export default function WallCanvas({ ui, patchUi, canvasApi }) {
           <div>
             <p className="empty-title">Start with your wall</p>
             <p className="empty-sub">
-              Pick a blank size or upload a photo of the wall — then add frames at real size.
+              Give it a size, add frames at their real size, arrange them around the sofa — then
+              print a sheet with every nail position marked.
             </p>
+            <div className="empty-actions">
+              <button onClick={() => patchUi({ tab: 'wall', sheetOpen: true })}>
+                Pick a wall size
+              </button>
+              <button
+                className="ghost-outline"
+                onClick={() => {
+                  dispatch({ type: 'load', payload: demoDoc() })
+                  toast('Loaded a demo wall — drag frames around, then reset when done.', 'ok')
+                }}
+              >
+                ✨ Try a demo wall
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -661,6 +679,7 @@ export default function WallCanvas({ ui, patchUi, canvasApi }) {
               <span>Real length:</span>
               <input
                 type="number"
+                step={stepFor(state.units)}
                 autoFocus
                 placeholder={unitLabel(state.units)}
                 value={calLen}
@@ -970,15 +989,14 @@ function ObstacleNode({
 
 // Format an inch value in the active unit for labels.
 function fmtLen(inches, units) {
-  const v = fromInches(inches, units)
-  const n = Math.round(v * 10) / 10
-  return units === 'cm' ? `${n}cm` : `${n}"`
+  const n = disp(inches, units)
+  return units === 'm' ? `${n}m` : `${n}"`
 }
 
 // Figma-style reference grid, drawn only over the wall area.
 function GridOverlay({ offX, offY, wallWIn, wallHIn, inToDisp, units, zoom }) {
-  const minorIn = units === 'cm' ? 5 * IN_PER_CM : 6 // 5cm or 6in
-  const majorEvery = 2 // every 2nd line is a major line (10cm / 12in)
+  const minorIn = units === 'm' ? 0.1 * IN_PER_M : 6 // 10cm or 6in
+  const majorEvery = units === 'm' ? 5 : 2 // major line every 0.5m / 12in
   const wPx = inToDisp(wallWIn)
   const hPx = inToDisp(wallHIn)
   const lines = []

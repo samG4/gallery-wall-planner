@@ -1,17 +1,15 @@
 import React, { useMemo } from 'react'
 import { useStore } from '../store.jsx'
-import { fromInches, unitLabel } from '../units.js'
+import { disp, unitLabel } from '../units.js'
 import { hangingPlan, shoppingList } from '../hanging.js'
 import { downloadText } from '../utils.js'
 import { obstacleKind, obstacleRect } from '../obstacles.js'
-
-const n1 = (v) => Math.round(v * 10) / 10
 
 export default function HangingGuide({ onClose }) {
   const { state } = useStore()
   const units = state.units
   const u = unitLabel(units)
-  const f = (inches) => n1(fromInches(inches, units))
+  const f = (inches) => disp(inches, units)
 
   const plan = useMemo(() => hangingPlan(state), [state])
   const list = useMemo(() => shoppingList(state), [state])
@@ -236,7 +234,7 @@ export default function HangingGuide({ onClose }) {
                   <thead>
                     <tr>
                       <th>Frame</th>
-                      <th>Outer ({u === 'cm' ? 'in' : 'in'})</th>
+                      <th>Outer ({u})</th>
                       <th>On wall</th>
                       <th>Owned</th>
                       <th>To buy</th>

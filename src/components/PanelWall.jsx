@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useStore } from '../store.jsx'
 import { readImageFile, workArea, clamp } from '../utils.js'
-import { toInches, fromInches, unitLabel } from '../units.js'
+import { toInches, unitLabel, disp as dispIn, stepFor } from '../units.js'
 import { useToast } from './Toasts.jsx'
 import { demoDoc } from '../project.js'
 import SectionTitle from './SectionTitle.jsx'
@@ -24,8 +24,8 @@ export default function PanelWall({ ui, patchUi }) {
   const { state, dispatch } = useStore()
   const { units } = state
   const toast = useToast()
-  const [blankW, setBlankW] = useState(() => String(fromInches(48, units)))
-  const [blankH, setBlankH] = useState(() => String(fromInches(36, units)))
+  const [blankW, setBlankW] = useState(() => String(dispIn(48, units)))
+  const [blankH, setBlankH] = useState(() => String(dispIn(36, units)))
   const [wallW, setWallW] = useState('')
 
   async function onWallUpload(e) {
@@ -87,7 +87,7 @@ export default function PanelWall({ ui, patchUi }) {
   const hasWall = wallHIn > 0
   const eyeMinIn = state.settings.floorOffsetIn
   const eyeMaxIn = hasWall ? state.settings.floorOffsetIn + wallHIn : Number.MAX_SAFE_INTEGER
-  const disp = (inches) => Math.round(fromInches(inches, units) * 10) / 10
+  const disp = (inches) => dispIn(inches, units)
 
   return (
     <section>
@@ -133,6 +133,7 @@ export default function PanelWall({ ui, patchUi }) {
         <div className="row">
           <input
             type="number"
+            step={stepFor(units)}
             aria-label={`Wall width in ${unitLabel(units)}`}
             placeholder={`W (${unitLabel(units)})`}
             value={blankW}
@@ -140,6 +141,7 @@ export default function PanelWall({ ui, patchUi }) {
           />
           <input
             type="number"
+            step={stepFor(units)}
             aria-label={`Wall height in ${unitLabel(units)}`}
             placeholder={`H (${unitLabel(units)})`}
             value={blankH}
@@ -154,7 +156,7 @@ export default function PanelWall({ ui, patchUi }) {
             aria-label="Wall colour"
           />
         </div>
-        <button className="cta" onClick={() => makeBlankWall()}>
+        <button className="cta spaced" onClick={() => makeBlankWall()}>
           {state.wallMode === 'blank' ? 'Update blank wall' : 'Use blank wall'}
         </button>
         <label
@@ -170,8 +172,8 @@ export default function PanelWall({ ui, patchUi }) {
             <p className="scale-status">
               {state.wallRegion ? (
                 <span className="ok">
-                  ✓ Wall area set ({fromInches(state.wallRegionWIn, units).toFixed(0)}×
-                  {fromInches(state.wallRegionHIn, units).toFixed(0)} {unitLabel(units)})
+                  ✓ Wall area set ({disp(state.wallRegionWIn)}×{disp(state.wallRegionHIn)}{' '}
+                  {unitLabel(units)})
                 </span>
               ) : scaleReady ? (
                 <span className="ok">✓ Scale set ({state.pixelsPerInch.toFixed(1)} px/in)</span>
@@ -200,6 +202,7 @@ export default function PanelWall({ ui, patchUi }) {
             <div className="row">
               <input
                 type="number"
+                step={stepFor(units)}
                 placeholder={`width (${unitLabel(units)})`}
                 aria-label={`Total wall width in ${unitLabel(units)}`}
                 value={wallW}
@@ -215,12 +218,13 @@ export default function PanelWall({ ui, patchUi }) {
       <div className="calib-method" data-tour="heights">
         <SectionTitle
           title="Heights"
-          info="Everything vertical is measured from the floor. Eye-line is where picture centres sit — galleries use 57in. Area bottom is how far the bottom edge of your wall area is off the floor, which is what turns wall positions into real nail heights."
+          info="Everything vertical is measured from the floor. Eye-line is where picture centres sit — galleries use 57in. Bottom edge is how far the bottom of your wall area sits off the floor, which is what turns wall positions into real nail heights."
         />
         <div className="row">
           <label className="mini">Eye-line</label>
           <input
             type="number"
+            step={stepFor(units)}
             min={disp(eyeMinIn)}
             max={disp(eyeMaxIn)}
             value={disp(state.settings.eyeLineIn)}
@@ -239,9 +243,10 @@ export default function PanelWall({ ui, patchUi }) {
           </p>
         )}
         <div className="row">
-          <label className="mini">Area bottom</label>
+          <label className="mini">Bottom edge</label>
           <input
             type="number"
+            step={stepFor(units)}
             min="0"
             value={disp(state.settings.floorOffsetIn)}
             onChange={(e) => {
@@ -259,7 +264,7 @@ export default function PanelWall({ ui, patchUi }) {
             }}
             aria-label="Height of the working area's bottom edge above the floor"
           />
-          <span className="mini">{unitLabel(units)} above floor</span>
+          <span className="mini">{unitLabel(units)} up from the floor</span>
         </div>
       </div>
     </section>

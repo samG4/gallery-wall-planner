@@ -9,6 +9,8 @@ import PhotoCropEditor from './components/PhotoCropEditor.jsx'
 import WallAreaEditor from './components/WallAreaEditor.jsx'
 import HangingGuide from './components/HangingGuide.jsx'
 import Coachmarks, { tourSeen } from './components/Coachmarks.jsx'
+import NextStep from './components/NextStep.jsx'
+import { stepsDone } from './progress.js'
 import { useMediaQuery } from './utils.js'
 
 const NUDGE_IN = 0.25
@@ -29,6 +31,8 @@ function Shell() {
     cropPlacedId: null, // placed frame whose photo we're cropping
     selectedIds: [], // placed frames
     selectedObstacleId: null,
+    visited: { wall: true }, // tabs already opened — the Next bar stops nudging these
+
     showGrid: false, // Figma-style reference grid
     showDims: false, // blueprint dimension annotations
     wallAreaOpen: false, // wall-area selector modal
@@ -39,7 +43,7 @@ function Shell() {
   const patchUi = useCallback((p) => setUi((u) => ({ ...u, ...p })), [])
 
   const toggleUnits = () =>
-    dispatch({ type: 'set', payload: { units: state.units === 'in' ? 'cm' : 'in' } })
+    dispatch({ type: 'set', payload: { units: state.units === 'in' ? 'm' : 'in' } })
 
   // First visit: run the tour once the app has painted.
   useEffect(() => {
@@ -123,7 +127,13 @@ function Shell() {
   }, [undo, redo, ui.selectedIds, ui.selectedObstacleId, state.placedFrames, state.obstacles, dispatch, patchUi])
 
   const openTab = (key) =>
-    patchUi({ tab: key, sheetOpen: !(ui.sheetOpen && ui.tab === key) })
+    patchUi({
+      tab: key,
+      sheetOpen: !(ui.sheetOpen && ui.tab === key),
+      visited: { ...ui.visited, [key]: true },
+    })
+
+  const done = stepsDone(state)
 
   return (
     <div className={`app${mobile ? ' mobile' : ''}`}>
@@ -153,7 +163,7 @@ function Shell() {
       </header>
 
       <div className="body">
-        {!mobile && <Sidebar ui={ui} patchUi={patchUi} canvasApi={canvasApi} />}
+        {!mobile && <Sidebar ui={ui} patchUi={patchUi} canvasApi={canvasApi} mobile={mobile} />}
         <main className="canvas-wrap" data-tour="canvas">
           <WallCanvas ui={ui} patchUi={patchUi} canvasApi={canvasApi} />
           <SelectionBar ui={ui} patchUi={patchUi} />
@@ -172,8 +182,23 @@ function Shell() {
               aria-label={ui.sheetOpen ? 'Close panel' : 'Open panel'}
               onClick={() => patchUi({ sheetOpen: !ui.sheetOpen })}
             />
-            <Sidebar ui={ui} patchUi={patchUi} canvasApi={canvasApi} showTabs={false} />
+            <Sidebar
+              ui={ui}
+              patchUi={patchUi}
+              canvasApi={canvasApi}
+              mobile={mobile}
+              showTabs={false}
+            />
           </div>
+
+          {/* With the sheet down there's no sidebar to carry the Next bar, so it
+              floats over the tab bar — but never on top of the selection bar, and
+              never once they've reached the hanging guide (it'd just be in the way). */}
+          {!ui.sheetOpen &&
+            !ui.visited.export &&
+            !ui.selectedIds.length &&
+            !ui.selectedObstacleId && <NextStep ui={ui} patchUi={patchUi} mobile floating />}
+
           <nav className="tabbar" role="tablist" aria-label="Planner steps" data-tour="steps">
             {TABS.map((t) => (
               <button
@@ -186,6 +211,11 @@ function Shell() {
               >
                 <span aria-hidden="true">{t.icon}</span>
                 <span className="tb-label">{t.label}</span>
+                {done[t.key] && (
+                  <span className="tab-done" aria-hidden="true">
+                    ✓
+                  </span>
+                )}
               </button>
             ))}
           </nav>
