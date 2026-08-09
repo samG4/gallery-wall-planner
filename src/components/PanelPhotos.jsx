@@ -2,8 +2,9 @@ import React from 'react'
 import { useStore, uid } from '../store.jsx'
 import { readImageFile } from '../utils.js'
 import { useToast } from './Toasts.jsx'
+import PhotoPicker from './PhotoPicker.jsx'
 
-export default function PanelPhotos({ ui, patchUi = () => {} }) {
+export default function PanelPhotos({ ui, patchUi = () => {}, mobile }) {
   const { state, dispatch } = useStore()
   const toast = useToast()
   const selected = ui.selectedIds || []
@@ -53,10 +54,13 @@ export default function PanelPhotos({ ui, patchUi = () => {} }) {
 
   return (
     <section>
-      <label className="filebtn">
-        Upload photos
-        <input type="file" accept="image/*" multiple onChange={onPhotoUpload} hidden />
-      </label>
+      <PhotoPicker
+        mobile={mobile}
+        multiple
+        onChange={onPhotoUpload}
+        label={mobile ? 'Choose photos' : 'Upload photos'}
+        cameraLabel="Take a photo"
+      />
       <p className="hint">
         Tap a photo to drop it into the selected frame — or into the first empty one if nothing is
         selected. Crop it to fit after.

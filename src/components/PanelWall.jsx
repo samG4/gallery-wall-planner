@@ -5,6 +5,7 @@ import { toInches, unitLabel, disp as dispIn, stepFor } from '../units.js'
 import { useToast } from './Toasts.jsx'
 import { demoDoc } from '../project.js'
 import SectionTitle from './SectionTitle.jsx'
+import PhotoPicker from './PhotoPicker.jsx'
 
 const BLANK_PPI = 10 // render px per inch for a blank wall
 
@@ -20,7 +21,7 @@ const WALL_PRESETS = [
   { label: 'Whole wall', w: 144, h: 96, floor: 0 },
 ]
 
-export default function PanelWall({ ui, patchUi }) {
+export default function PanelWall({ ui, patchUi, mobile }) {
   const { state, dispatch } = useStore()
   const { units } = state
   const toast = useToast()
@@ -243,13 +244,14 @@ export default function PanelWall({ ui, patchUi }) {
         {/* The way out of whichever path you're on. */}
         {isPhoto ? (
           <>
-            <label
+            <PhotoPicker
               className="filebtn secondary"
+              mobile={mobile}
+              onChange={onWallUpload}
+              label="Replace wall photo"
+              cameraLabel="Retake"
               title="Photograph the wall straight on, then mark a rectangle you know the real size of."
-            >
-              Replace wall photo
-              <input type="file" accept="image/*" onChange={onWallUpload} hidden />
-            </label>
+            />
             {!showBlank && (
               <button className="linkbtn" onClick={() => setShowBlank(true)}>
                 Use a blank wall instead
@@ -257,13 +259,14 @@ export default function PanelWall({ ui, patchUi }) {
             )}
           </>
         ) : (
-          <label
+          <PhotoPicker
             className="filebtn secondary"
+            mobile={mobile}
+            onChange={onWallUpload}
+            label={mobile ? 'Choose a photo' : 'Or upload a wall photo'}
+            cameraLabel="Photograph the wall"
             title="Photograph the wall straight on, then mark a rectangle you know the real size of."
-          >
-            Or upload a wall photo
-            <input type="file" accept="image/*" onChange={onWallUpload} hidden />
-          </label>
+          />
         )}
       </div>
 
