@@ -17,7 +17,7 @@ import { useImage, photoPlacement, workArea, frameBoxIn, clamp } from '../utils.
 import { toInches, fromInches, unitLabel, IN_PER_CM } from '../units.js'
 import { buildDimensions } from '../dimensions.js'
 import { openingOf, moulding as mouldingOf, mat as matOf } from '../frames.js'
-import { obstacleKind } from '../obstacles.js'
+import { obstacleKind, obstacleRect } from '../obstacles.js'
 import { snapBox } from '../snap.js'
 import { CANVAS } from '../theme.js'
 
@@ -155,11 +155,12 @@ export default function WallCanvas({ ui, patchUi, canvasApi }) {
       }
       for (const o of state.obstacles) {
         if (excludeIds.includes(o.id)) continue
-        out.push({ x: o.xIn, y: o.yIn, w: o.wIn, h: o.hIn })
+        const r = obstacleRect(o, wallHIn, state.settings.floorOffsetIn)
+        if (r) out.push(r)
       }
       return out
     },
-    [state.placedFrames, state.obstacles, styleById]
+    [state.placedFrames, state.obstacles, styleById, wallHIn, state.settings.floorOffsetIn]
   )
 
   const snapFor = useCallback(
@@ -427,32 +428,46 @@ export default function WallCanvas({ ui, patchUi, canvasApi }) {
               </Group>
             )}
 
-            {/* obstacles (TV, sofa, switch…) */}
+            {/* obstacles (sofa, TV, switch…) */}
             {ppi &&
-              state.obstacles.map((o) => (
-                <ObstacleNode
-                  key={o.id}
-                  obstacle={o}
-                  offX={originX}
-                  offY={originY}
-                  inToDisp={inToDisp}
-                  ppi={ppi}
-                  displayScale={displayScale}
-                  zoom={view.zoom}
-                  units={state.units}
-                  selected={ui.selectedObstacleId === o.id}
-                  onSelect={() => patchUi({ selectedObstacleId: o.id, selectedIds: [] })}
-                  onDragMove={(xIn, yIn, alt) => {
-                    const { dx, dy } = snapFor({ x: xIn, y: yIn, w: o.wIn, h: o.hIn }, [o.id], alt)
-                    dispatch({
-                      type: 'updateObstacle',
-                      id: o.id,
-                      patch: { xIn: xIn + dx, yIn: yIn + dy },
-                    })
-                  }}
-                  onDragEnd={() => setGuides([])}
-                />
-              ))}
+              state.obstacles.map((o) => {
+                const r = obstacleRect(o, wallHIn, state.settings.floorOffsetIn)
+                return (
+                  <ObstacleNode
+                    key={o.id}
+                    obstacle={o}
+                    rect={r}
+                    wallWIn={wallWIn}
+                    wallHIn={wallHIn}
+                    offX={originX}
+                    offY={originY}
+                    inToDisp={inToDisp}
+                    ppi={ppi}
+                    displayScale={displayScale}
+                    zoom={view.zoom}
+                    units={state.units}
+                    selected={ui.selectedObstacleId === o.id}
+                    onSelect={() => patchUi({ selectedObstacleId: o.id, selectedIds: [] })}
+                    onDragMove={(xIn, yIn, alt) => {
+                      if (!r) return
+                      const { dx, dy } = snapFor({ x: xIn, y: yIn, w: r.w, h: r.h }, [o.id], alt)
+                      // Dragging sideways moves it along the wall; dragging up or
+                      // down changes how high off the floor it sits.
+                      const dTop = r.y - (yIn + dy)
+                      dispatch({
+                        type: 'updateObstacle',
+                        id: o.id,
+                        patch: {
+                          xIn: xIn + dx,
+                          topFromFloorIn: o.topFromFloorIn + dTop,
+                          bottomFromFloorIn: Math.max(0, (o.bottomFromFloorIn || 0) + dTop),
+                        },
+                      })
+                    }}
+                    onDragEnd={() => setGuides([])}
+                  />
+                )
+              })}
 
             {/* placed frames */}
             {showFrames &&
@@ -816,6 +831,9 @@ function PlacedFrameNode({
 
 function ObstacleNode({
   obstacle,
+  rect,
+  wallWIn,
+  wallHIn,
   offX,
   offY,
   inToDisp,
@@ -829,10 +847,40 @@ function ObstacleNode({
   onDragEnd,
 }) {
   const k = obstacleKind(obstacle.kind)
-  const w = inToDisp(obstacle.wIn)
-  const h = inToDisp(obstacle.hIn)
-  const x = offX + inToDisp(obstacle.xIn)
-  const y = offY + inToDisp(obstacle.yIn)
+  const name = obstacle.label || k.label
+
+  // Out of reach of this wall area: show a tick at the bottom edge saying how far
+  // below it sits, rather than pretending it covers wall it doesn't.
+  if (!rect) {
+    const below = Math.max(0, (obstacle.topFromFloorIn ?? 0))
+    const y = offY + inToDisp(wallHIn)
+    const x = offX + inToDisp(Math.max(0, Math.min(obstacle.xIn, wallWIn)))
+    return (
+      <Group listening={false}>
+        <Line
+          points={[x, y, x + inToDisp(Math.min(obstacle.wIn, wallWIn)), y]}
+          stroke={CANVAS.obstacleStroke}
+          strokeWidth={2 / zoom}
+          dash={[6 / zoom, 5 / zoom]}
+        />
+        <Label x={x + 4 / zoom} y={y + 4 / zoom} scaleX={1 / zoom} scaleY={1 / zoom}>
+          <Tag fill={CANVAS.obstacleTag} cornerRadius={3} opacity={0.85} />
+          <Text
+            text={`${k.icon} ${name} — top ${fmtLen(below, units)} up, below this area`}
+            fontSize={11}
+            fill={CANVAS.obstacleText}
+            padding={3}
+          />
+        </Label>
+      </Group>
+    )
+  }
+
+  const w = inToDisp(rect.w)
+  const h = inToDisp(rect.h)
+  const x = offX + inToDisp(rect.x)
+  const y = offY + inToDisp(rect.y)
+  const clipped = obstacle.bottomFromFloorIn < obstacle.topFromFloorIn - rect.h - 0.05
   return (
     <Group
       x={x}
@@ -861,10 +909,10 @@ function ObstacleNode({
       <Label x={4 / zoom} y={4 / zoom} scaleX={1 / zoom} scaleY={1 / zoom} listening={false}>
         <Tag fill={CANVAS.obstacleTag} cornerRadius={3} opacity={0.88} />
         <Text
-          text={`${k.icon} ${obstacle.label || k.label} · ${fmtLen(obstacle.wIn, units)}×${fmtLen(
-            obstacle.hIn,
+          text={`${k.icon} ${name} · ${fmtLen(obstacle.wIn, units)} wide · top ${fmtLen(
+            obstacle.topFromFloorIn,
             units
-          )}`}
+          )} off the floor${clipped ? ' (continues below)' : ''}`}
           fontSize={11}
           fill={CANVAS.obstacleText}
           padding={3}

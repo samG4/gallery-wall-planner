@@ -37,7 +37,13 @@ nail positions. Everything renders at real-world scale so proportions match the 
     `style.openingFrac` — presets have no `openingFrac`. `styleReady(style)` = has an opening.
 - `photos[]`: `{id,image,w,h}` pool of user images.
 - `placedFrames[]`: `{id,styleId,xIn,yIn,rot,photoId,crop}`. `xIn/yIn` = top-left of the UNROTATED frame in inches. `rot` = frame rotation deg. `crop` = `{scale,ox,oy,rot}` for the photo inside the opening (ox/oy are box-size fractions; rot = photo rotation deg).
-- `obstacles[]`: `{id,kind,label,xIn,yIn,wIn,hIn}` — presets in src/obstacles.js.
+- `obstacles[]`: `{id,kind,label,xIn,wIn,bottomFromFloorIn,topFromFloorIn}`. Obstacles are
+  described the way you measure a room — a width plus a vertical span in heights ABOVE THE
+  FLOOR — never as a wall rectangle. How much lands on the working area is derived by
+  `obstacleRect(o, wallHIn, floorOffsetIn)` (src/obstacles.js), which returns null when the
+  thing sits entirely below or above it. **Always go through `obstacleRect`/`obstacleRects`;
+  don't store or read a wall-space y/h.** v2.0 docs stored a rect and are migrated in
+  `migrateObstacles()`.
 
 ## Rendering math (src/utils.js, WallCanvas.jsx)
 - `displayScale` = contain-fit of the wall into the stage. Inches -> content px = `inches * pixelsPerInch * displayScale`.
@@ -103,18 +109,20 @@ is an approximation — say so if it ever matters.
   modal wall on mobile.
 
 ## Look and feel (src/styles.css, src/theme.js)
-Light, warm theme built on #FF9D9D coral · #FFC5AA peach · #EEF8CD lime · #BBF1D2 mint.
-The pastels are surfaces and accents; contrast comes from the deepened tokens
-(`--accent-ink`, `--danger-ink`, `--ok`, `--warn-ink`) — coral fills always take dark
-warm ink, never white text. Konva can't read CSS variables, so canvas colours live in
-`src/theme.js` as `CANVAS`; **change both together.**
+Gallery palette: black (`--ink`), white, warm greys and wood (`--wood` oak) — the colours
+real frames come in. Primary fills are near-black with white ink; the oak accent is
+reserved for whatever the user is acting on (selection, snap centre lines, calibration,
+focus rings) so it stays legible over any wall photo. Konva can't read CSS variables, so
+canvas colours live in `src/theme.js` as `CANVAS`; **change both together.**
 
 ## Onboarding (src/components/Coachmarks.jsx)
 First-run tour, replayable from the header `?`. Steps declare a `data-tour` selector, a
 `prepare()` that puts the app into the state the step talks about, and copy. The target
 is tracked by polling (180ms) rather than a one-shot measure, so the spotlight follows
 the mobile sheet animation and layout shifts; a step whose target never appears is
-skipped rather than shown floating. Seen-state is its own localStorage key, so
+skipped rather than shown floating. The measured rect is stamped with the step it belongs
+to and the card only renders once that rect is fresh — otherwise the card jumps ahead
+while the spotlight is still on the previous element. Seen-state is its own localStorage key, so
 resetting a project doesn't replay the tour. **Anything you want the tour to point at
 needs a `data-tour` attribute** — they are the anchors, don't rely on class names.
 

@@ -7,12 +7,16 @@ import { demoDoc } from '../project.js'
 
 const BLANK_PPI = 10 // render px per inch for a blank wall
 
+// Starting sizes for the AREA you plan to hang in — not the whole room wall.
+// `floor` = how high that area's bottom edge sits, so "over a sofa" starts above
+// the sofa back rather than at the skirting board.
 const WALL_PRESETS = [
-  { label: 'Above sofa', w: 84, h: 48 },
-  { label: 'Above bed', w: 72, h: 54 },
-  { label: 'Hallway', w: 120, h: 60 },
-  { label: 'Stairwell', w: 96, h: 90 },
-  { label: 'Full wall', w: 144, h: 96 },
+  { label: 'Over a sofa', w: 84, h: 48, floor: 36 },
+  { label: 'Over a bed', w: 72, h: 54, floor: 40 },
+  { label: 'Over a console', w: 60, h: 42, floor: 34 },
+  { label: 'Hallway run', w: 120, h: 60, floor: 30 },
+  { label: 'Stairwell', w: 96, h: 90, floor: 20 },
+  { label: 'Whole wall', w: 144, h: 96, floor: 0 },
 ]
 
 export default function PanelWall({ ui, patchUi }) {
@@ -44,7 +48,7 @@ export default function PanelWall({ ui, patchUi }) {
     toast('Wall photo added — now set the wall area so the scale is real.', 'info')
   }
 
-  function makeBlankWall(wOverride, hOverride) {
+  function makeBlankWall(wOverride, hOverride, floorIn) {
     const wIn = wOverride ?? toInches(parseFloat(blankW), units)
     const hIn = hOverride ?? toInches(parseFloat(blankH), units)
     if (!wIn || !hIn) return toast('Enter a width and a height first.', 'warn')
@@ -59,6 +63,7 @@ export default function PanelWall({ ui, patchUi }) {
         wallRegion: null,
       },
     })
+    if (typeof floorIn === 'number') dispatch({ type: 'setSettings', payload: { floorOffsetIn: floorIn } })
   }
 
   function calibrateByWallWidth() {
@@ -101,20 +106,32 @@ export default function PanelWall({ ui, patchUi }) {
 
       {/* Blank canvas — no photo needed, scale is exact from dimensions */}
       <div className="calib-method">
-        <strong>Blank canvas</strong>
-        <p className="hint">No wall photo? Set a size and colour to try arrangements.</p>
+        <strong>Wall area</strong>
+        <p className="hint">
+          No wall photo? Give the area a size and colour and start arranging.
+        </p>
+        <p className="hint">
+          Pick the patch of wall you'll actually hang in, not the whole room wall — you can edit
+          the numbers after.
+        </p>
         <div className="chips">
           {WALL_PRESETS.map((p) => (
             <button
               key={p.label}
               className="chip"
+              title={`${disp(p.w)}×${disp(p.h)} ${unitLabel(units)}, starting ${disp(
+                p.floor
+              )} ${unitLabel(units)} above the floor`}
               onClick={() => {
-                setBlankW(String(Math.round(fromInches(p.w, units))))
-                setBlankH(String(Math.round(fromInches(p.h, units))))
-                makeBlankWall(p.w, p.h)
+                setBlankW(String(disp(p.w)))
+                setBlankH(String(disp(p.h)))
+                makeBlankWall(p.w, p.h, p.floor)
               }}
             >
-              {p.label}
+              {p.label}{' '}
+              <span className="chip-dim">
+                {disp(p.w)}×{disp(p.h)}
+              </span>
             </button>
           ))}
         </div>

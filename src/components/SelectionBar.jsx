@@ -4,6 +4,7 @@ import { fromInches, toInches, unitLabel } from '../units.js'
 import { frameBoxIn } from '../utils.js'
 import { align, distribute, evenGap } from '../align.js'
 import { obstacleKind } from '../obstacles.js'
+import { workArea } from '../utils.js'
 
 // Number field that lets you type freely and only commits a valid value.
 function NumInput({ valueIn, units, onCommitIn, title, width = 62, step = 0.5 }) {
@@ -49,16 +50,44 @@ export default function SelectionBar({ ui, patchUi }) {
           {k.icon} {obstacle.label || k.label}
         </span>
         <span className="bar-group">
-          <label>W</label>
-          <NumInput valueIn={obstacle.wIn} units={units} onCommitIn={(v) => patch({ wIn: Math.max(1, v) })} title={`Width (${u})`} />
-          <label>H</label>
-          <NumInput valueIn={obstacle.hIn} units={units} onCommitIn={(v) => patch({ hIn: Math.max(1, v) })} title={`Height (${u})`} />
+          <label>Width</label>
+          <NumInput
+            valueIn={obstacle.wIn}
+            units={units}
+            onCommitIn={(v) => patch({ wIn: Math.max(1, v) })}
+            title={`Width (${u})`}
+          />
+          <label>From left</label>
+          <NumInput
+            valueIn={obstacle.xIn}
+            units={units}
+            onCommitIn={(v) => patch({ xIn: v })}
+            title={`Distance from the wall's left edge (${u})`}
+          />
         </span>
         <span className="bar-group">
-          <label>X</label>
-          <NumInput valueIn={obstacle.xIn} units={units} onCommitIn={(v) => patch({ xIn: v })} title={`From wall left (${u})`} />
-          <label>Y</label>
-          <NumInput valueIn={obstacle.yIn} units={units} onCommitIn={(v) => patch({ yIn: v })} title={`From wall top (${u})`} />
+          <label title={`Measured to the ${k.measure}`}>Top off floor</label>
+          <NumInput
+            valueIn={obstacle.topFromFloorIn}
+            units={units}
+            onCommitIn={(v) =>
+              patch({
+                topFromFloorIn: Math.max((obstacle.bottomFromFloorIn || 0) + 0.5, v),
+              })
+            }
+            title={`Height of the ${k.measure} above the floor (${u})`}
+          />
+          <label>Bottom</label>
+          <NumInput
+            valueIn={obstacle.bottomFromFloorIn || 0}
+            units={units}
+            onCommitIn={(v) =>
+              patch({
+                bottomFromFloorIn: Math.max(0, Math.min(obstacle.topFromFloorIn - 0.5, v)),
+              })
+            }
+            title={`Height of its bottom edge above the floor (${u}) — 0 for anything standing on the floor`}
+          />
         </span>
         <button
           className="danger"

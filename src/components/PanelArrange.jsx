@@ -3,7 +3,7 @@ import { useStore, uid } from '../store.jsx'
 import { fromInches, toInches, unitLabel } from '../units.js'
 import { workArea } from '../utils.js'
 import { LAYOUTS, usableArea, layoutInArea } from '../layouts.js'
-import { OBSTACLE_KINDS, obstacleKind } from '../obstacles.js'
+import { OBSTACLE_KINDS, obstacleKind, obstacleRect, obstacleRects, makeObstacle } from '../obstacles.js'
 import { useToast } from './Toasts.jsx'
 
 export default function PanelArrange({ ui, patchUi }) {
@@ -23,7 +23,8 @@ export default function PanelArrange({ ui, patchUi }) {
     const frames = state.placedFrames
       .filter((p) => styleById[p.styleId])
       .map((p) => ({ id: p.id, wIn: styleById[p.styleId].outerW, hIn: styleById[p.styleId].outerH }))
-    const area = usableArea(wallWIn, wallHIn, state.obstacles, state.settings.gapIn)
+    const blockers = obstacleRects(state.obstacles, wallHIn, state.settings.floorOffsetIn)
+    const area = usableArea(wallWIn, wallHIn, blockers, state.settings.gapIn)
     const pos = layoutInArea(
       LAYOUTS[key].fn,
       frames,
@@ -46,22 +47,17 @@ export default function PanelArrange({ ui, patchUi }) {
   }
 
   function addObstacle(kind) {
-    const k = obstacleKind(kind)
     const { wallWIn, wallHIn } = workArea(state)
-    const id = uid('obs')
-    dispatch({
-      type: 'addObstacle',
-      obstacle: {
-        id,
-        kind: k.key,
-        label: k.label,
-        wIn: Math.min(k.wIn, Math.max(4, wallWIn - 2)),
-        hIn: Math.min(k.hIn, Math.max(4, wallHIn - 2)),
-        xIn: Math.max(0, wallWIn / 2 - k.wIn / 2),
-        yIn: Math.max(0, wallHIn - k.hIn),
-      },
-    })
-    patchUi({ selectedObstacleId: id, selectedIds: [] })
+    const obstacle = makeObstacle(uid('obs'), kind, wallWIn)
+    dispatch({ type: 'addObstacle', obstacle })
+    patchUi({ selectedObstacleId: obstacle.id, selectedIds: [] })
+    if (!obstacleRect(obstacle, wallHIn, state.settings.floorOffsetIn)) {
+      toast(
+        `${obstacle.label} sits below this wall area, so it blocks nothing here. Adjust its height or the area's bottom in step 1.`,
+        'warn',
+        6000
+      )
+    }
   }
 
   return (
@@ -128,8 +124,9 @@ export default function PanelArrange({ ui, patchUi }) {
       <div className="calib-method">
         <strong>Obstacles</strong>
         <p className="hint">
-          Block out what's already there. Auto-layouts keep clear of them, and they show up in the
-          hanging guide.
+          Measured the way you'd measure the room: a width, and how high off the{' '}
+          <strong>floor</strong> it reaches. Only the part that overlaps this wall area blocks
+          anything — a sofa back at 33{u} blocks the bottom 33{u} of the wall, not all of it.
         </p>
         <div className="chips">
           {OBSTACLE_KINDS.map((k) => (
@@ -146,9 +143,12 @@ export default function PanelArrange({ ui, patchUi }) {
                   className="linkbtn grow"
                   onClick={() => patchUi({ selectedObstacleId: o.id, selectedIds: [] })}
                 >
-                  {obstacleKind(o.kind).icon} {o.label} ·{' '}
-                  {Math.round(fromInches(o.wIn, units))}×{Math.round(fromInches(o.hIn, units))}
-                  {u}
+                  {obstacleKind(o.kind).icon} {o.label} · {Math.round(fromInches(o.wIn, units))}
+                  {u} wide · top {Math.round(fromInches(o.topFromFloorIn, units))}
+                  {u} up
+                  {!obstacleRect(o, workArea(state).wallHIn, state.settings.floorOffsetIn) && (
+                    <span className="warn"> · below this area</span>
+                  )}
                 </button>
                 <button
                   className="linkbtn"

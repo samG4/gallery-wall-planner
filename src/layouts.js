@@ -12,11 +12,14 @@ const GAP = 3 // inches between frames
 // templates centre the arrangement in real free space instead of behind the sofa.
 export function usableArea(wallW, wallH, obstacles = [], clearanceIn = 6) {
   const full = { x: 0, y: 0, w: wallW, h: wallH }
+  // `obstacles` are already resolved to wall-space rects ({x,y,w,h} in inches)
+  // by obstacleRects(), because how much of a sofa lands on this wall depends on
+  // where the wall area starts.
   const blockers = obstacles
-    .filter((o) => o.wIn > 0 && o.hIn > 0)
+    .filter((o) => o.w > 0 && o.h > 0)
     .map((o) => ({
-      y1: Math.max(0, o.yIn - clearanceIn),
-      y2: Math.min(wallH, o.yIn + o.hIn + clearanceIn),
+      y1: Math.max(0, o.y - clearanceIn),
+      y2: Math.min(wallH, o.y + o.h + clearanceIn),
     }))
     .filter((b) => b.y2 > 0 && b.y1 < wallH)
   if (!blockers.length) return full

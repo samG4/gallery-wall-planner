@@ -11,11 +11,12 @@
 export const MOULDINGS = [
   { key: 'black', label: 'Black', color: '#1a1b1f', edge: '#3d4046', inner: '#0d0e11' },
   { key: 'white', label: 'White', color: '#f3f1ec', edge: '#ffffff', inner: '#cdc8bf' },
+  { key: 'grey', label: 'Grey', color: '#8d8a85', edge: '#aeaba5', inner: '#6c6963' },
   { key: 'oak', label: 'Oak', color: '#c79c67', edge: '#e3c294', inner: '#a67d4c' },
+  { key: 'ash', label: 'Ash', color: '#ddc9a8', edge: '#f0e2c9', inner: '#b8a17e' },
   { key: 'walnut', label: 'Walnut', color: '#5c3a24', edge: '#7f5336', inner: '#3d2415' },
   { key: 'gold', label: 'Gold', color: '#c2a03c', edge: '#eddb92', inner: '#8f7220' },
   { key: 'silver', label: 'Silver', color: '#b4b8be', edge: '#e6e9ed', inner: '#8c9198' },
-  { key: 'brass', label: 'Brass', color: '#a8783f', edge: '#d4a463', inner: '#7c5527' },
 ]
 
 export const MATS = [
