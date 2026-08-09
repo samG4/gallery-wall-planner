@@ -11,14 +11,14 @@ export default function NextStep({ ui, patchUi, mobile, floating = false }) {
 
   const go = () => {
     const patch = { tab: step.tab, visited: { ...ui.visited, [step.tab]: true } }
-    if (mobile) patch.sheetOpen = true
+    if (mobile) patch.sheet = 'full'
     if (step.action === 'guide') {
       patch.guideOpen = true
-      patch.sheetOpen = false
+      patch.sheet = 'closed'
     }
     if (step.action === 'wallArea') {
       patch.wallAreaOpen = true
-      patch.sheetOpen = false
+      patch.sheet = 'closed'
     }
     patchUi(patch)
   }

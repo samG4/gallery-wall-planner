@@ -99,7 +99,9 @@ export default function PanelFrames({ ui, patchUi, mobile }) {
     })
     // On mobile the sheet covers the wall, so adding a frame you can't see is
     // just a counter going up. Drop the sheet and let them watch it land.
-    patchUi({ selectedIds: [id], selectedObstacleId: null, ...(mobile ? { sheetOpen: false } : {}) })
+    // Half, not closed: the wall shows above it and the library is still
+    // there, so adding three frames doesn't mean reopening the sheet twice.
+    patchUi({ selectedIds: [id], selectedObstacleId: null, ...(mobile ? { sheet: 'half' } : {}) })
     if (crowded) toast('Wall is full, so that one landed on top. Try Arrange.', 'warn')
     else if (mobile) toast('Added to the wall — drag it where you want it.', 'ok')
   }

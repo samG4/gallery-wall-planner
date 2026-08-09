@@ -132,12 +132,23 @@ than in the panel. No other step repeats there: one sentence, one place.
   the printed nail map is the point of the app and the tab bar has to say so.
 - `App.jsx` — shell, keyboard shortcuts (undo/redo, Cmd+D duplicate, arrows nudge,
   Delete, Esc), mobile detection via `useMediaQuery('(max-width: 860px)')`, and the
-  bottom sheet. The sheet handle is a full-width strip with `touch-action: none` and
-  swipe handlers: without both, a downward drag there is pull-to-refresh and the project
-  reloads out from under the user. Scroll containers inside the sheet use
-  `overscroll-behavior: contain` for the same reason. UI state (`selectedIds[]`, `selectedObstacleId`, `tab`, modals) is transient.
+  bottom sheet. The sheet has THREE detents (`ui.sheet` = `'closed' | 'half' | 'full'`,
+  `SHEET_Y` in App.jsx): the handle is a full-width strip with `touch-action: none` that
+  follows the finger and settles on the nearest one, and a tap moves between full and
+  half — never straight to gone, which read as "cancel". Adding a frame on mobile drops
+  it to `half`, so the wall shows above the panel and the library is still there. Without
+  the handlers plus `touch-action`, a downward drag there is pull-to-refresh and the
+  project reloads out from under the user; scroll containers inside the sheet use
+  `overscroll-behavior: contain` for the same reason.
+  **Anything floating over the canvas must not eat touches it doesn't use** — the Next
+  bar is `pointer-events: none` with `auto` on its button, and the mobile selection bar
+  is one scrolling row rather than a wrapped 130px slab. A frame under an overlay reads
+  to the user as a frame that won't drag. UI state (`selectedIds[]`, `selectedObstacleId`, `tab`, modals) is transient.
 - `WallCanvas.jsx` — Konva stage, zoom/pan, calibration, placed frames, obstacles,
   selection + Transformer rotate handle, snap guides, grid / dimension overlays.
+  Every frame carries an invisible `GRAB_PAD` rect so a finger can catch a 30px-wide
+  frame, and `onDragStart` buzzes (`navigator.vibrate`) — on a phone there's no cursor
+  to tell you the drag took.
   Dims recompute live on `onDragMove` (frames dispatch position mid-drag).
 - `SelectionBar.jsx` — floating inspector: numeric X/Y, rotation, crop, duplicate, delete;
   align/distribute/equal-gap when several frames are selected; obstacle size/position when
