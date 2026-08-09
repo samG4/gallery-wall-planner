@@ -91,8 +91,6 @@ export default function PanelWall({ ui, patchUi }) {
 
   return (
     <section>
-      <h2>1 · Wall</h2>
-
       {!state.wallMode && (
         <button
           className="cta"
@@ -156,19 +154,14 @@ export default function PanelWall({ ui, patchUi }) {
             aria-label="Wall colour"
           />
         </div>
-        <button onClick={() => makeBlankWall()}>
+        <button className="cta" onClick={() => makeBlankWall()}>
           {state.wallMode === 'blank' ? 'Update blank wall' : 'Use blank wall'}
         </button>
-      </div>
-
-      {/* Photo wall */}
-      <div className="calib-method">
-        <SectionTitle
-          title="Or use a wall photo"
-          info="Photograph the wall straight on, then mark a rectangle you know the real size of. That sets the scale, so frames render at true size against your own room."
-        />
-        <label className="filebtn small">
-          {state.wallMode === 'photo' ? 'Replace wall photo' : 'Upload wall photo'}
+        <label
+          className="filebtn secondary"
+          title="Photograph the wall straight on, then mark a rectangle you know the real size of — that sets the scale."
+        >
+          {state.wallMode === 'photo' ? 'Replace wall photo' : 'Or upload a wall photo'}
           <input type="file" accept="image/*" onChange={onWallUpload} hidden />
         </label>
 

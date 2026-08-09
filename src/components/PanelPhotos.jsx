@@ -43,7 +43,6 @@ export default function PanelPhotos({ ui, patchUi }) {
 
   return (
     <section>
-      <h2>3 · Photos</h2>
       <label className="filebtn">
         Upload photos
         <input type="file" accept="image/*" multiple onChange={onPhotoUpload} hidden />

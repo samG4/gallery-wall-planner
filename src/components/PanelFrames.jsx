@@ -56,8 +56,6 @@ export default function PanelFrames({ ui, patchUi }) {
 
   return (
     <section>
-      <h2>2 · Frames</h2>
-
       <FrameLibrary onPlace={addToWall} />
 
       <div className="calib-method">

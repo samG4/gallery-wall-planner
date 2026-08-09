@@ -54,7 +54,7 @@ export default function PanelArrange({ ui, patchUi }) {
     patchUi({ selectedObstacleId: obstacle.id, selectedIds: [] })
     if (!obstacleRect(obstacle, wallHIn, state.settings.floorOffsetIn)) {
       toast(
-        `${obstacle.label} sits below this wall area, so it blocks nothing here. Adjust its height or the area's bottom in step 1.`,
+        `${obstacle.label} sits below this wall area, so it blocks nothing here. Adjust its height, or the area's bottom on the Wall step.`,
         'warn',
         6000
       )
@@ -63,8 +63,6 @@ export default function PanelArrange({ ui, patchUi }) {
 
   return (
     <section>
-      <h2>4 · Arrange</h2>
-
       <div className="calib-method">
         <SectionTitle
           title="Spacing &amp; helpers"

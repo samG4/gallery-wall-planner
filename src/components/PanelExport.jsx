@@ -42,8 +42,6 @@ export default function PanelExport({ ui, patchUi, canvasApi }) {
 
   return (
     <section>
-      <h2>5 · Export</h2>
-
       <div className="calib-method">
         <SectionTitle
           title="Take it to the wall"
