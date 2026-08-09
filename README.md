@@ -15,34 +15,93 @@ and layout live in `localStorage` on your machine.
 
 ## Features
 
+**Set up the wall**
+
 - **Two wall modes** — upload a photo of your actual wall, or start from a blank
-  canvas at a size you type in.
-- **Real-world scale** — calibrate a photo wall (reference line or known width) so
-  every frame is sized to true inches/cm. Blank walls set scale from their dimensions.
-- **Frame styles** — add reusable frame styles from a frame image at real outer
-  dimensions, with a defined inner opening.
+  canvas at a size you type in (with presets: above sofa, above bed, hallway,
+  stairwell, full wall).
+- **Real-world scale** — calibrate a photo wall by selecting the working area, drawing
+  a reference line, or entering the wall width. Blank walls get scale from their size.
+- **Demo wall** — one click loads a finished example so you can try the tool with
+  nothing of your own.
+- **Guided tour** — first-run coachmarks point at each part of the UI and say what
+  it does. Replay any time from the **?** in the header.
+
+**Frames**
+
+- **Frame library** — pick from standard art sizes (4×6 through 30×40, plus A5–A1),
+  choose a moulding colour and width and a mat colour and width, and the frame is
+  drawn for you. No photo of a frame needed, and outer size is computed from art +
+  mat + moulding the way real frames work.
+- **Custom frames** — still supported: upload a photo of a real frame, give its outer
+  size, and mark the inner opening by hand.
 - **Photos in frames** — drop your photos into openings, then pan/zoom/rotate/crop
-  them to fit (WYSIWYG with the canvas).
-- **Arrange** — drag, rotate, and snap frames; live blueprint dimensions and a
-  reference grid overlay.
-- **Auto-layouts** — row, eye-line (57in), column, two-rows, grid, masonry,
-  staircase, centerpiece, and alternating templates to seed an arrangement.
+  them to fit (WYSIWYG with the canvas). "Fill empty frames" does the whole wall at once.
+
+**Arrange**
+
+- **Smart snapping** — frames snap to each other's edges and centres, to the wall's
+  edges and centre, to the eye-line, and to your chosen standard gap, with alignment
+  guides while you drag. Hold Alt to bypass.
+- **Multi-select** — shift-click to select several frames, then align, distribute
+  evenly, or force an exact equal gap. Drag moves the whole selection together.
+- **Precise control** — numeric X/Y and rotation for the selection, arrow-key nudge
+  (Shift for a bigger step), duplicate, delete.
+- **Obstacles** — block out the sofa, TV, window, door, switch or thermostat at real
+  size. Auto-layouts keep clear of them and they appear in the hanging guide.
+- **Zoom & pan** — scrolling pans (it never fights you by zooming); pinch, or
+  `Cmd/Ctrl`+scroll, or the toolbar buttons zoom. Dragging the background pans too.
+- **Overlays** — reference grid, live blueprint dimensions, and the 57in museum
+  eye-line.
+- **Auto-layouts** — row, eye-line, column, two-rows, grid, masonry, salon, pyramid,
+  staircase, centerpiece and alternating templates, all obstacle-aware and clamped to
+  stay on the wall.
+
+**Finish**
+
+- **Hanging guide** — a printable sheet (print or Save as PDF) with a plan drawing,
+  nail crosses, and a table of every frame's offsets from the wall edges, its centre
+  height above the floor, and each hook's position — using your own hanger drop.
+- **Shopping list** — optional price per frame gives quantities, what's still to buy,
+  and a total.
+- **Export** — download the wall as a PNG, or save/reopen the whole project as a JSON
+  file (images included) to back it up or move it to another browser.
 - **Units** — toggle inches / cm (inches are canonical internally).
+- **Light, warm interface** — a soft coral / peach / lime / mint palette, because a
+  wall of your own photos shouldn't be planned in a dark IDE.
 - **Undo / redo** — full history with sensible gesture coalescing
   (Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z or Ctrl+Y).
+- **Works on phones** — the layout switches to a full-screen canvas with a bottom tab
+  bar and sheet panels, with touch drag and pinch-zoom.
+- **Installable & offline** — it's a PWA: add it to your home screen and it keeps
+  working without a connection.
+
+## Keyboard shortcuts
+
+| Action | Shortcut |
+| --- | --- |
+| Undo / redo | `Cmd/Ctrl+Z` / `Cmd/Ctrl+Shift+Z` (or `Ctrl+Y`) |
+| Duplicate selection | `Cmd/Ctrl+D` |
+| Nudge selection | Arrow keys (`Shift` = 1in/step) |
+| Delete selection | `Delete` / `Backspace` |
+| Deselect | `Esc` |
+| Add to selection | `Shift`-click a frame |
+| Bypass snapping | Hold `Alt` while dragging |
+| Pan the canvas | Scroll, or drag the background |
+| Zoom the canvas | Pinch, or `Cmd/Ctrl`+scroll |
 
 ## How it compares
 
 Good gallery-wall planners already exist — [GalleryPlanner](https://gallery-planner.com/),
-Suprtiles, and others let you lay out real frame sizes with your own photos. They're
-worth a look, and several of them do more than this tool (PDF drill guides, marking
-obstacles like a TV or sofa, larger layout libraries).
+Suprtiles, and others let you lay out real frame sizes with your own photos, and they're
+worth a look.
 
 Where this one differs: it's **fully free with nothing paywalled**, **open source
 (MIT)**, requires **no sign-up**, and runs **entirely in your browser** so your photos
-never leave your machine. It's deliberately small — set a wall, size some frames, drop
-in photos, arrange. If you want a no-friction, hackable tool rather than a freemium
-product, this is for you.
+never leave your machine — no upload, no account, no export credits. It covers the
+things that used to be the reason to reach for a paid tool: a printable hanging guide
+with nail positions, obstacles like a TV or sofa, a standard-size frame library with
+mats, snapping and alignment tools, and a proper mobile experience.
 
 ## Tech stack
 
@@ -78,19 +137,39 @@ so no rewrite rules are needed. See [DEPLOY.md](DEPLOY.md) for host-by-host step
 
 ```
 src/
-  App.jsx                  app shell, keyboard shortcuts
-  store.jsx                state, persistence, undo/redo
-  utils.js                 rendering math, scale, work-area
-  layouts.js               auto-layout templates
+  App.jsx                  app shell, keyboard shortcuts, mobile sheet
+  store.jsx                state, persistence, undo/redo, migration
+  utils.js                 rendering math, scale, work-area, image downscale
+  frames.js                frame catalogue (sizes, mouldings, mats) + geometry
+  layouts.js               auto-layout templates + usable-area / obstacle logic
+  snap.js                  snapping engine (edges, centres, eye-line, gaps)
+  align.js                 align / distribute / equal-gap for a selection
   dimensions.js            blueprint measurements
+  hanging.js               nail positions, offsets, shopping list
+  obstacles.js             sofa / TV / window / door presets
+  project.js               project file save + open, demo wall
   units.js                 in <-> cm conversion (edges only)
+  theme.js                 canvas colours (mirrors the CSS tokens)
   components/
-    Sidebar.jsx            4-step controls
-    WallCanvas.jsx         Konva stage, calibration, selection, overlays
-    FrameStyleForm.jsx     add/edit frame styles
+    Sidebar.jsx            tabbed panel host
+    Coachmarks.jsx         first-run guided tour
+    PanelWall.jsx          step 1 — wall setup + calibration + heights
+    PanelFrames.jsx        step 2 — frame library, custom frames, style editing
+    PanelPhotos.jsx        step 3 — photo pool + assignment
+    PanelArrange.jsx       step 4 — spacing, obstacles, auto-layouts
+    PanelExport.jsx        step 5 — guide, PNG, project file, storage, reset
+    FrameLibrary.jsx       standard-size picker with moulding/mat controls
+    WallCanvas.jsx         Konva stage, zoom/pan, snapping, selection, overlays
+    SelectionBar.jsx       selection inspector + align/distribute tools
+    HangingGuide.jsx       printable measurement sheet
+    Toasts.jsx             non-blocking notices
+    FrameStyleForm.jsx     add a frame style from a photo
     OpeningEditor.jsx      define a frame's inner opening
     PhotoCropEditor.jsx    fit a photo into an opening
     WallAreaEditor.jsx     pick a working sub-region on a wall photo
+public/
+  manifest.webmanifest     PWA manifest
+  sw.js                    offline service worker
 ```
 
 See [CLAUDE.md](CLAUDE.md) for a deeper tour of the data model and rendering math.

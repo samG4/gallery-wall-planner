@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react'
 import { useStore } from '../store.jsx'
 import { photoPlacement } from '../utils.js'
+import { openingOf } from '../frames.js'
 
 // Pan + zoom a photo to fit inside a frame's opening. WYSIWYG with the wall canvas.
 export default function PhotoCropEditor({ placedId, onClose }) {
@@ -11,8 +12,10 @@ export default function PhotoCropEditor({ placedId, onClose }) {
   const [crop, setCrop] = useState(placed?.crop || { scale: 1, ox: 0, oy: 0, rot: 0 })
   const dragRef = useRef(null)
 
+  const of = placed && style ? openingOf(style) : null
+
   if (!placed || !style || !photo) return null
-  if (!style.openingFrac) {
+  if (!of) {
     return (
       <div className="modal-backdrop" onClick={onClose}>
         <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -24,11 +27,10 @@ export default function PhotoCropEditor({ placedId, onClose }) {
   }
 
   // Real opening aspect (physically correct) drives the crop box shape.
-  const of = style.openingFrac
   const aspect = (of.w * style.outerW) / (of.h * style.outerH)
-  let boxW = Math.min(560, window.innerWidth - 100)
+  let boxW = Math.max(200, Math.min(560, window.innerWidth - 48))
   let boxH = boxW / aspect
-  const maxH = window.innerHeight - 320
+  const maxH = Math.max(180, window.innerHeight - 330)
   if (boxH > maxH) {
     boxH = maxH
     boxW = boxH * aspect

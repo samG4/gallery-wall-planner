@@ -24,8 +24,8 @@ export default function WallAreaEditor({ onClose }) {
   // Fit photo within modal width AND height
   const natW = state.wallNaturalW || img.naturalWidth || 1
   const natH = state.wallNaturalH || img.naturalHeight || 1
-  const maxW = Math.min(820, window.innerWidth - 80)
-  const maxH = window.innerHeight - 240
+  const maxW = Math.max(220, Math.min(820, window.innerWidth - 40))
+  const maxH = Math.max(200, window.innerHeight - 260)
   const scale = Math.min(maxW / natW, maxH / natH)
   const dispW = natW * scale
   const dispH = natH * scale

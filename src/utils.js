@@ -1,19 +1,58 @@
 import { useEffect, useState } from 'react'
+import { footprint } from './layouts.js'
 
-// Read a File -> {dataURL, w, h}
-export function readImageFile(file) {
+// Uploads are kept in localStorage as dataURLs, so a 12MP phone photo would blow
+// the ~5MB quota on its own. Downscale + re-encode on the way in.
+const MAX_PX = 1600 // longest edge
+const JPEG_Q = 0.84
+const KEEP_AS_IS_BYTES = 180 * 1024
+
+function decode(dataURL) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => resolve(img)
+    img.onerror = reject
+    img.src = dataURL
+  })
+}
+
+function readAsDataURL(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
-    reader.onload = () => {
-      const img = new Image()
-      img.onload = () =>
-        resolve({ dataURL: reader.result, w: img.naturalWidth, h: img.naturalHeight })
-      img.onerror = reject
-      img.src = reader.result
-    }
+    reader.onload = () => resolve(reader.result)
     reader.onerror = reject
     reader.readAsDataURL(file)
   })
+}
+
+// Read a File -> {dataURL, w, h}, downscaled/re-encoded when it's big.
+// PNGs stay PNG (frame cut-outs may rely on alpha); everything else becomes JPEG.
+export async function readImageFile(file, maxPx = MAX_PX) {
+  const raw = await readAsDataURL(file)
+  const img = await decode(raw)
+  const longest = Math.max(img.naturalWidth, img.naturalHeight)
+  const isPng = /^data:image\/png/i.test(raw)
+  if (longest <= maxPx && raw.length <= KEEP_AS_IS_BYTES) {
+    return { dataURL: raw, w: img.naturalWidth, h: img.naturalHeight }
+  }
+  const k = Math.min(1, maxPx / longest)
+  const w = Math.max(1, Math.round(img.naturalWidth * k))
+  const h = Math.max(1, Math.round(img.naturalHeight * k))
+  const canvas = document.createElement('canvas')
+  canvas.width = w
+  canvas.height = h
+  const ctx = canvas.getContext('2d')
+  ctx.imageSmoothingQuality = 'high'
+  ctx.drawImage(img, 0, 0, w, h)
+  let out
+  try {
+    out = isPng ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', JPEG_Q)
+    // A downscaled PNG can still be huge; fall back to JPEG when it is.
+    if (isPng && out.length > 900 * 1024) out = canvas.toDataURL('image/jpeg', JPEG_Q)
+  } catch (e) {
+    out = raw
+  }
+  return { dataURL: out.length < raw.length ? out : raw, w, h }
 }
 
 // Bounding box of a photo rotated by `rot` degrees.
@@ -39,6 +78,15 @@ export function photoPlacement(boxW, boxH, photoW, photoH, crop) {
   const cx = boxW / 2 + (crop?.ox ?? 0) * boxW
   const cy = boxH / 2 + (crop?.oy ?? 0) * boxH
   return { w, h, cx, cy, rot }
+}
+
+// Axis-aligned bounding box (inches) of a placed frame, rotation included.
+// Single source of truth for dimensions, snapping, hanging and align tools.
+export function frameBoxIn(placed, style) {
+  const cx = placed.xIn + style.outerW / 2
+  const cy = placed.yIn + style.outerH / 2
+  const fp = footprint(style.outerW, style.outerH, placed.rot || 0)
+  return { x: cx - fp.w / 2, y: cy - fp.h / 2, w: fp.w, h: fp.h, cx, cy }
 }
 
 // The working wall area in inches + where its origin sits.
@@ -77,3 +125,45 @@ export function useImage(src) {
   }, [src])
   return img
 }
+
+// True while the viewport is phone-sized. Drives the mobile shell.
+export function useMediaQuery(query) {
+  const [match, setMatch] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia(query).matches
+  )
+  useEffect(() => {
+    const mq = window.matchMedia(query)
+    const on = () => setMatch(mq.matches)
+    on()
+    // `change` alone is not reliable across every resize path (devtools device
+    // emulation, some embedded webviews), and getting stuck on the desktop shell
+    // at phone width is very visible. Listen for the coarse events too.
+    mq.addEventListener('change', on)
+    window.addEventListener('resize', on)
+    window.addEventListener('orientationchange', on)
+    return () => {
+      mq.removeEventListener('change', on)
+      window.removeEventListener('resize', on)
+      window.removeEventListener('orientationchange', on)
+    }
+  }, [query])
+  return match
+}
+
+export function download(filename, href) {
+  const a = document.createElement('a')
+  a.href = href
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+}
+
+export function downloadText(filename, text, mime = 'application/json') {
+  const blob = new Blob([text], { type: mime })
+  const url = URL.createObjectURL(blob)
+  download(filename, url)
+  setTimeout(() => URL.revokeObjectURL(url), 2000)
+}
+
+export const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v))
