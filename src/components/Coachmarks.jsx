@@ -33,19 +33,19 @@ const STEPS = [
     target: '[data-tour="steps"]',
     title: 'How this works',
     body: 'Five tabs, left to right: wall, frames, photos, arrange, hang it.',
-    prepare: ({ patchUi }) => patchUi({ tab: 'wall', sheetOpen: false }),
+    prepare: ({ patchUi }) => patchUi({ tab: 'wall', sheet: 'closed' }),
   },
   {
     target: '[data-tour="panel"]',
     title: 'Set your wall',
     body: 'Pick a size or upload a photo. Everything is drawn to real scale.',
-    prepare: ({ patchUi, mobile }) => patchUi({ tab: 'wall', sheetOpen: mobile }),
+    prepare: ({ patchUi, mobile }) => patchUi({ tab: 'wall', sheet: mobile ? 'full' : 'closed' }),
   },
   {
     target: '[data-tour="export"]',
     title: 'Hang it',
     body: 'The last tab prints where each nail goes.',
-    prepare: ({ patchUi, mobile }) => patchUi({ tab: 'export', sheetOpen: mobile }),
+    prepare: ({ patchUi, mobile }) => patchUi({ tab: 'export', sheet: mobile ? 'full' : 'closed' }),
   },
 ]
 
@@ -83,7 +83,7 @@ export default function Coachmarks({ patchUi, mobile, onClose }) {
   // happened to open.
   const finish = useCallback(() => {
     markSeen()
-    patchUi({ tab: 'wall', sheetOpen: false })
+    patchUi({ tab: 'wall', sheet: 'closed' })
     onClose()
   }, [onClose, patchUi])
 

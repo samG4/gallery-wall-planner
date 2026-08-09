@@ -13,6 +13,10 @@ import NextStep from './components/NextStep.jsx'
 import { stepsDone } from './progress.js'
 import { useMediaQuery } from './utils.js'
 
+// Sheet detents, as a % of its own height translated down. Dragging the handle
+// settles on the nearest one.
+const SHEET_Y = { full: 0, half: 52, closed: 105 }
+
 const NUDGE_IN = 0.25
 const NUDGE_BIG_IN = 1
 
@@ -25,7 +29,7 @@ function Shell() {
   // Transient UI state (not persisted)
   const [ui, setUi] = useState({
     tab: 'wall',
-    sheetOpen: false, // mobile: is the panel sheet up?
+    sheet: 'closed', // mobile: 'closed' | 'half' | 'full'
     calibrating: false, // reference-line mode
     openingStyleId: null, // style whose opening we're drawing
     cropPlacedId: null, // placed frame whose photo we're cropping
@@ -45,27 +49,58 @@ function Shell() {
   const toggleUnits = () =>
     dispatch({ type: 'set', payload: { units: state.units === 'in' ? 'm' : 'in' } })
 
-  // Swipe the handle to open/close the sheet. Without this the gesture falls
-  // through to the browser, which reads a downward drag at the top of the page
-  // as pull-to-refresh and reloads the project out from under the user.
+  // The sheet has three heights, not two: dragging the handle moves it with the
+  // finger and it settles on the nearest one. A single tap that made the whole
+  // panel vanish read as "cancel" rather than "put this away".
+  const sheetRef = useRef(null)
   const dragRef = useRef(null)
+  const [dragY, setDragY] = useState(null) // live offset in px while dragging
+  const sheetPos = ui.sheet // 'closed' | 'half' | 'full'
+  const sheetOpen = sheetPos !== 'closed'
+
+  const sheetH = () => sheetRef.current?.offsetHeight || 1
+  const baseY = (pos) => (SHEET_Y[pos] / 100) * sheetH()
+  const settle = (px) => {
+    const pct = (px / sheetH()) * 100
+    let best = 'full'
+    for (const k of Object.keys(SHEET_Y))
+      if (Math.abs(SHEET_Y[k] - pct) < Math.abs(SHEET_Y[best] - pct)) best = k
+    return best
+  }
+
   const sheetDrag = {
+    // touch-action: none on the handle keeps the browser out of this; without
+    // both that and these handlers a downward drag is pull-to-refresh, which
+    // reloads the project out from under the user.
     onTouchStart: (e) => {
-      dragRef.current = { y: e.touches[0].clientY, open: ui.sheetOpen, moved: false }
+      dragRef.current = { y: e.touches[0].clientY, base: baseY(sheetPos), moved: false }
     },
     onTouchMove: (e) => {
       const d = dragRef.current
       if (!d) return
       const dy = e.touches[0].clientY - d.y
-      if (Math.abs(dy) < 24) return
+      if (!d.moved && Math.abs(dy) < 6) return
       d.moved = true
-      if (dy > 0 && d.open) patchUi({ sheetOpen: false })
-      else if (dy < 0 && !d.open) patchUi({ sheetOpen: true })
-      dragRef.current = null
+      // The live position lives on the ref, not in state: touchend reads it
+      // immediately and a state update from the last move may not have flushed.
+      d.cur = Math.max(0, Math.min(d.base + dy, sheetH() * 1.05))
+      setDragY(d.cur)
     },
     onTouchEnd: () => {
+      const d = dragRef.current
       dragRef.current = null
+      if (!d?.moved) return setDragY(null) // a tap: let onClick handle it
+      const pos = settle(d.cur ?? d.base)
+      setDragY(null)
+      patchUi({ sheet: pos })
     },
+  }
+
+  // Tap cycles up, then back to half — never straight to gone, which is what
+  // made the handle feel like a dismiss button.
+  const tapHandle = () => {
+    if (dragRef.current?.moved) return
+    patchUi({ sheet: sheetPos === 'full' ? 'half' : 'full' })
   }
 
   // First visit: run the tour once the app has painted.
@@ -149,10 +184,12 @@ function Shell() {
     return () => window.removeEventListener('keydown', onKey)
   }, [undo, redo, ui.selectedIds, ui.selectedObstacleId, state.placedFrames, state.obstacles, dispatch, patchUi])
 
+  // Tapping the tab you're already on puts the sheet away; any other tab opens
+  // it full.
   const openTab = (key) =>
     patchUi({
       tab: key,
-      sheetOpen: !(ui.sheetOpen && ui.tab === key),
+      sheet: sheetOpen && ui.tab === key ? 'closed' : 'full',
       visited: { ...ui.visited, [key]: true },
     })
 
@@ -196,14 +233,18 @@ function Shell() {
       {/* ---------- mobile: bottom sheet + tab bar ---------- */}
       {mobile && (
         <>
-          {ui.sheetOpen && (
-            <div className="sheet-backdrop" onClick={() => patchUi({ sheetOpen: false })} />
+          {sheetPos === 'full' && (
+            <div className="sheet-backdrop" onClick={() => patchUi({ sheet: 'closed' })} />
           )}
-          <div className={`sheet${ui.sheetOpen ? ' open' : ''}`}>
+          <div
+            ref={sheetRef}
+            className={`sheet sheet-${sheetPos}${dragY == null ? '' : ' dragging'}`}
+            style={dragY == null ? undefined : { transform: `translateY(${dragY}px)` }}
+          >
             <button
               className="sheet-handle"
-              aria-label={ui.sheetOpen ? 'Close panel' : 'Open panel'}
-              onClick={() => patchUi({ sheetOpen: !ui.sheetOpen })}
+              aria-label={sheetPos === 'full' ? 'Lower panel' : 'Raise panel'}
+              onClick={tapHandle}
               {...sheetDrag}
             />
             <Sidebar
@@ -218,7 +259,7 @@ function Shell() {
           {/* With the sheet down there's no sidebar to carry the Next bar, so it
               floats over the tab bar — but never on top of the selection bar, and
               never once they've reached the hanging guide (it'd just be in the way). */}
-          {!ui.sheetOpen &&
+          {!sheetOpen &&
             !ui.visited.export &&
             !ui.selectedIds.length &&
             !ui.selectedObstacleId && <NextStep ui={ui} patchUi={patchUi} mobile floating />}
@@ -228,8 +269,8 @@ function Shell() {
               <button
                 key={t.key}
                 role="tab"
-                aria-selected={ui.sheetOpen && ui.tab === t.key}
-                className={ui.sheetOpen && ui.tab === t.key ? 'on' : ''}
+                aria-selected={sheetOpen && ui.tab === t.key}
+                className={sheetOpen && ui.tab === t.key ? 'on' : ''}
                 data-tour={t.key === 'export' ? 'export' : undefined}
                 onClick={() => openTab(t.key)}
               >

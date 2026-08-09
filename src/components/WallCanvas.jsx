@@ -24,6 +24,10 @@ import { demoDoc } from '../project.js'
 import { nextAction } from '../progress.js'
 import { useToast } from './Toasts.jsx'
 
+// Extra hit area around every frame, in screen px. Fingers are ~44px wide and
+// frames can be 30px on a phone.
+const GRAB_PAD = 10
+
 // Guides are drawn over a wall that might be a dark photo or a white blank, so
 // every line goes down twice: a white halo, then the black stroke on top.
 function HaloLine({ points, zoom, strokeW = 1.4, dash, stroke = CANVAS.dim }) {
@@ -361,7 +365,7 @@ export default function WallCanvas({ ui, patchUi, canvasApi }) {
     const patch = { tab: prompt.tab, visited: { ...ui.visited, [prompt.tab]: true } }
     if (prompt.action === 'wallArea') patch.wallAreaOpen = true
     else if (prompt.action === 'guide') patch.guideOpen = true
-    else patch.sheetOpen = true
+    else patch.sheet = 'full'
     patchUi(patch)
   }
 
@@ -388,7 +392,7 @@ export default function WallCanvas({ ui, patchUi, canvasApi }) {
               print a sheet with every nail position marked.
             </p>
             <div className="empty-actions">
-              <button onClick={() => patchUi({ tab: 'wall', sheetOpen: true })}>
+              <button onClick={() => patchUi({ tab: 'wall', sheet: 'full' })}>
                 Pick a wall size
               </button>
               <button
@@ -771,7 +775,12 @@ function PlacedFrameNode({
         draggable
         onClick={(e) => onSelect(e.evt.shiftKey || e.evt.metaKey || e.evt.ctrlKey)}
         onTap={() => onSelect(false)}
-        onDragStart={onDragStart}
+        onDragStart={(e) => {
+          // A short buzz the moment the frame comes off the wall — on a phone
+          // there is no cursor to tell you the drag took.
+          navigator.vibrate?.(12)
+          onDragStart(e)
+        }}
         onDragMove={(e) => {
           const p = toInchesTopLeft(e.target)
           onDragMove(p.xIn, p.yIn, e.evt.altKey)
@@ -783,6 +792,17 @@ function PlacedFrameNode({
           onRotate(((e.target.rotation() % 360) + 360) % 360)
         }}
       >
+        {/* Invisible grab margin. A5 on a phone is barely 30px across, so
+            without it a finger lands beside the frame and pans the wall
+            instead — which reads as "this frame won't drag". */}
+        <Rect
+          x={-GRAB_PAD}
+          y={-GRAB_PAD}
+          width={fw + GRAB_PAD * 2}
+          height={fh + GRAB_PAD * 2}
+          fill="rgba(0,0,0,0.001)"
+        />
+
         {/* --- drawn (preset) frame: moulding + mat --- */}
         {style.kind === 'preset' && (
           <>

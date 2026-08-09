@@ -119,6 +119,10 @@ body {
   box-shadow: var(--shadow-md);
 }
 .nextbar.floating .nextbar-hint { display: none; }
+/* It floats over the canvas, so only its button may swallow touches — frames
+   under the bar were unreachable, which reads as "this frame won't drag". */
+.nextbar.floating { pointer-events: none; }
+.nextbar.floating button { pointer-events: auto; }
 
 .support-bar {
   padding: 10px 12px;
@@ -553,9 +557,15 @@ label.mini { flex: 0 0 auto; }
   background: var(--panel); border-top: 1px solid var(--border);
   border-radius: 20px 20px 0 0; overscroll-behavior: contain;
   transform: translateY(105%); transition: transform .22s ease;
+  /* Three heights. `half` leaves the wall visible above the panel, which is
+     where a frame you just added lands. */
   display: flex; flex-direction: column; box-shadow: var(--shadow-lg);
 }
-.sheet.open { transform: translateY(0); }
+.sheet.sheet-full { transform: translateY(0); }
+.sheet.sheet-half { transform: translateY(52%); }
+.sheet.sheet-closed { transform: translateY(105%); }
+/* While a finger is on the handle the sheet follows it, so no easing. */
+.sheet.dragging { transition: none; }
 .sheet .sidebar { width: 100%; border-right: none; background: transparent; }
 /* The grip is a 46x5 pill, but the button around it has to stay thumb-sized —
    drawing the pill straight onto the button made the mobile min-height rule
@@ -590,11 +600,15 @@ label.mini { flex: 0 0 auto; }
   .topbar { padding: 8px 12px; padding-top: max(8px, env(safe-area-inset-top)); }
   .topbar h1 { font-size: 15px; }
   .body { padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); }
+  /* One scrolling row, not a wrapped slab: wrapped it grew to ~130px and sat
+     on top of the frames the user was trying to drag. */
   .frame-actionbar {
     bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 10px);
     padding: 8px 10px; gap: 6px; width: calc(100% - 16px); max-width: none;
-    justify-content: center;
+    justify-content: flex-start;
+    flex-wrap: nowrap; overflow-x: auto; overscroll-behavior: contain;
   }
+  .frame-actionbar > * { flex: 0 0 auto; }
   .bar-group { padding-right: 6px; }
   .numin { width: 56px; }
   .rotate-ctl input[type=range] { width: 64px; }
