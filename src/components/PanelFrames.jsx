@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useStore, uid } from '../store.jsx'
-import { disp, toInches, unitLabel } from '../units.js'
+import { disp, toInches, unitLabel, smallUnit, stepFor } from '../units.js'
 import {
   MOULDINGS,
   MATS,
@@ -11,14 +11,63 @@ import {
   styleReady,
   swapOrientation,
 } from '../frames.js'
-import { workArea } from '../utils.js'
+import { workArea, frameBoxIn } from '../utils.js'
 import FrameLibrary from './FrameLibrary.jsx'
 import FrameStyleForm from './FrameStyleForm.jsx'
 import { useToast } from './Toasts.jsx'
 
-export default function PanelFrames({ ui, patchUi }) {
+// Where to drop a newly added frame. Stacking each one a couple of inches off
+// the last put them all on top of each other: on a touch screen only the top
+// frame can be grabbed, so the rest looked undraggable. Scan the wall for the
+// first spot that clears everything already on it, and only fall back to the
+// centre when the wall is genuinely full.
+function freeSpot(state, style, gapIn) {
+  const { wallWIn, wallHIn } = workArea(state)
+  const styleById = {}
+  for (const s of state.frameStyles) styleById[s.id] = s
+  const taken = state.placedFrames
+    .map((p) => (styleById[p.styleId] ? frameBoxIn(p, styleById[p.styleId]) : null))
+    .filter(Boolean)
+
+  const w = style.outerW
+  const h = style.outerH
+  const pad = Math.max(1, gapIn)
+  const step = Math.max(2, Math.min(w, h) / 2)
+  // Every candidate is scored by how much it covers what's already there, so a
+  // full wall degrades to "least covered" instead of dropping the frame on top
+  // of another one.
+  const cost = (x, y) =>
+    taken.reduce((sum, b) => {
+      const ox = Math.min(x + w + pad, b.x + b.w) - Math.max(x - pad, b.x)
+      const oy = Math.min(y + h + pad, b.y + b.h) - Math.max(y - pad, b.y)
+      return sum + (ox > 0 && oy > 0 ? ox * oy : 0)
+    }, 0)
+
+  // Candidate positions: a grid across the wall, always including the far edge
+  // so a frame that only fits flush right still finds that spot.
+  const axis = (max) => {
+    const out = []
+    for (let v = 1; v < max; v += step) out.push(v)
+    out.push(Math.max(1, max))
+    return out
+  }
+  const xs = axis(Math.max(1, wallWIn - w - 1))
+  const ys = axis(Math.max(1, wallHIn - h - 1))
+
+  let best = { xIn: xs[0], yIn: ys[0], cost: Infinity }
+  for (const y of ys)
+    for (const x of xs) {
+      const c = cost(x, y)
+      if (c === 0) return { xIn: x, yIn: y, crowded: false }
+      if (c < best.cost) best = { xIn: x, yIn: y, cost: c }
+    }
+  return { xIn: best.xIn, yIn: best.yIn, crowded: true }
+}
+
+export default function PanelFrames({ ui, patchUi, mobile }) {
   const { state, dispatch } = useStore()
-  const { units } = state
+  // Frame sizes are cm/in — a frame is never quoted in metres.
+  const units = smallUnit(state.units)
   const u = unitLabel(units)
   const toast = useToast()
   const [editing, setEditing] = useState(null)
@@ -35,23 +84,24 @@ export default function PanelFrames({ ui, patchUi }) {
       toast('Mark this frame’s inner opening first.', 'warn')
       return
     }
-    const { wallWIn, wallHIn } = workArea(state)
-    const n = state.placedFrames.length
-    const off = (n % 6) * 2
+    const { crowded, ...spot } = freeSpot(state, style, state.settings.gapIn)
     const id = uid('placed')
     dispatch({
       type: 'addPlaced',
       placed: {
         id,
         styleId: style.id,
-        xIn: Math.max(1, wallWIn / 2 - style.outerW / 2 + off),
-        yIn: Math.max(1, wallHIn / 2 - style.outerH / 2 + off),
+        ...spot,
         rot: 0,
         photoId: null,
         crop: { scale: 1, ox: 0, oy: 0, rot: 0 },
       },
     })
-    patchUi({ selectedIds: [id], selectedObstacleId: null })
+    // On mobile the sheet covers the wall, so adding a frame you can't see is
+    // just a counter going up. Drop the sheet and let them watch it land.
+    patchUi({ selectedIds: [id], selectedObstacleId: null, ...(mobile ? { sheetOpen: false } : {}) })
+    if (crowded) toast('Wall is full, so that one landed on top. Try Arrange.', 'warn')
+    else if (mobile) toast('Added to the wall — drag it where you want it.', 'ok')
   }
 
   return (
@@ -161,7 +211,7 @@ export default function PanelFrames({ ui, patchUi }) {
                           <label className="mini">Art</label>
                           <input
                             type="number"
-                            step={units === 'm' ? 0.01 : 0.5}
+                            step={0.5}
                             value={fmt(s.artW)}
                             aria-label={`Art width in ${u}`}
                             onChange={(e) =>
@@ -177,7 +227,7 @@ export default function PanelFrames({ ui, patchUi }) {
                           <span className="mini">×</span>
                           <input
                             type="number"
-                            step={units === 'm' ? 0.01 : 0.5}
+                            step={0.5}
                             value={fmt(s.artH)}
                             aria-label={`Art height in ${u}`}
                             onChange={(e) =>
@@ -273,7 +323,7 @@ export default function PanelFrames({ ui, patchUi }) {
                         <label className="mini">Outer</label>
                         <input
                           type="number"
-                          step={units === 'm' ? 0.01 : 0.5}
+                          step={0.5}
                           value={fmt(s.outerW)}
                           aria-label={`Outer width in ${u}`}
                           onChange={(e) =>
@@ -287,7 +337,7 @@ export default function PanelFrames({ ui, patchUi }) {
                         <span className="mini">×</span>
                         <input
                           type="number"
-                          step={units === 'm' ? 0.01 : 0.5}
+                          step={0.5}
                           value={fmt(s.outerH)}
                           aria-label={`Outer height in ${u}`}
                           onChange={(e) =>

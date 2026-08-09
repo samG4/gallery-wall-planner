@@ -1,6 +1,6 @@
 import React from 'react'
 import { useStore, uid } from '../store.jsx'
-import { disp, toInches, unitLabel } from '../units.js'
+import { disp, toInches, unitLabel, smallUnit } from '../units.js'
 import { workArea } from '../utils.js'
 import { LAYOUTS, usableArea, layoutInArea } from '../layouts.js'
 import { OBSTACLE_KINDS, obstacleKind, obstacleRect, obstacleRects, makeObstacle } from '../obstacles.js'
@@ -9,7 +9,7 @@ import SectionTitle from './SectionTitle.jsx'
 
 export default function PanelArrange({ ui, patchUi }) {
   const { state, dispatch } = useStore()
-  const { units } = state
+  const units = smallUnit(state.units)
   const u = unitLabel(units)
   const toast = useToast()
   const scaleReady = !!state.pixelsPerInch
@@ -159,20 +159,12 @@ export default function PanelArrange({ ui, patchUi }) {
             />
             Shadows
           </label>
-          <label className="tog">
-            <input
-              type="checkbox"
-              checked={state.settings.showEyeLine}
-              onChange={(e) => setCfg({ showEyeLine: e.target.checked })}
-            />
-            Eye-line
-          </label>
         </div>
         <div className="row">
           <label className="mini">Hanger drop</label>
           <input
             type="number"
-            step={units === 'm' ? 0.005 : 0.25}
+            step={units === 'cm' ? 0.5 : 0.25}
             value={disp(state.settings.hangerDropIn, units)}
             onChange={(e) => setCfg({ hangerDropIn: toInches(parseFloat(e.target.value) || 0, units) })}
             aria-label="Distance from frame top down to the hanger"

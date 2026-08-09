@@ -354,9 +354,10 @@ export function pyramidLayout(frames, wallW, wallH, gap = GAP) {
   return collect(placed)
 }
 
+// `eyeLineLayout` is still exported and still works; it's off the menu while the
+// eye-line itself is hidden from the UI.
 export const LAYOUTS = {
   row: { label: 'Single Row', fn: rowLayout },
-  eyeline: { label: 'Eye-line', fn: eyeLineLayout },
   column: { label: 'Column', fn: columnLayout },
   tworows: { label: 'Two Rows', fn: twoRowsLayout },
   grid: { label: 'Grid', fn: gridLayout },

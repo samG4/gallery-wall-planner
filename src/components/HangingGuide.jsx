@@ -1,13 +1,14 @@
 import React, { useMemo } from 'react'
 import { useStore } from '../store.jsx'
-import { disp, unitLabel } from '../units.js'
+import { disp, unitLabel, smallUnit } from '../units.js'
 import { hangingPlan, shoppingList } from '../hanging.js'
 import { downloadText } from '../utils.js'
 import { obstacleKind, obstacleRect } from '../obstacles.js'
 
 export default function HangingGuide({ onClose }) {
   const { state } = useStore()
-  const units = state.units
+  // Nail positions are measured with a tape, so cm/in.
+  const units = smallUnit(state.units)
   const u = unitLabel(units)
   const f = (inches) => disp(inches, units)
 

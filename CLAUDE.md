@@ -24,16 +24,31 @@ nail positions. Everything renders at real-world scale so proportions match the 
 - `wallMode`: `'photo' | 'blank'`. `wallImage` (dataURL) for photo; `wallColor` for blank.
 - `wallNaturalW/H`: wall size in px. `pixelsPerInch`: real scale (px per inch). Blank wall sets these from typed dimensions; photo wall gets `pixelsPerInch` via calibration.
 - Photo mode can select a working sub-region: `wallRegion` = `{x,y,w,h}` fractions of the photo + `wallRegionWIn/HIn` (real size). That region becomes the inches-origin `(0,0)` and the `wallWIn×wallHIn` working area. `workArea(state)` (src/utils.js) returns `{wallWIn,wallHIn,ox,oy}` (ox/oy = origin as photo fractions) and is the single source of truth for canvas origin, grid, dims, and auto-layout bounds. Reference-line / wall-width calibration clear `wallRegion`.
-- `units`: `'in' | 'm'` toggle (metres, not centimetres — `migrateDoc` upgrades old `'cm'`
-  docs). Internal canonical unit is ALWAYS inches; convert only at UI edges (src/units.js).
+- `units`: `'in' | 'm'` toggle — the SYSTEM, not the display unit. Each system has two
+  display units and `smallUnit(units)` picks the second one: metric shows walls in metres
+  and everything frame-sized in **centimetres**; imperial is inches throughout. Anything a
+  person would measure with a tape against a frame — frame sizes, gaps, mats, positions,
+  obstacle sizes, nail positions, on-canvas distances — goes through `smallUnit`. Only the
+  wall's own dimensions keep the big unit. A frame is never quoted in metres.
+  Internal canonical unit is ALWAYS inches; convert only at UI edges (src/units.js).
   **Use `disp(inches, unit)` for any displayed number and `stepFor(unit)` for any number
-  input's `step`** — metres need 3 dp where inches need 1, and a hand-rolled
+  input's `step`** — metres need 3 dp where inches and centimetres need 1, and a hand-rolled
   `Math.round(x * 10) / 10` quantises a hanger drop out of existence in metres. Sliders
   whose range only makes sense in inches (gap, mat, moulding) stay in inches and convert
   only in their readout.
+  First run picks the system from the browser locale (`localeUnits()`, US/LR/MM → inches);
+  after that it's whatever the user last toggled, because the doc is persisted.
+  Anything with typed-in numbers (the wall size boxes) must convert its text when `units`
+  changes, or "48" silently becomes 48 metres.
+  Preset lists are per system (`WALL_PRESETS`, frame library group) — a converted preset
+  reads like a measurement error, so metric gets its own round numbers and A sizes.
 - `settings`: `{snap, gapIn, shadows, hangerDropIn, eyeLineIn, showEyeLine, wallHeightIn, floorOffsetIn}`.
   `floorOffsetIn` = how far the working area's BOTTOM edge sits above the floor; combined
   with `eyeLineIn` it converts between wall-area Y and height-above-floor.
+  **The eye-line is parked**: `eyeLineIn`/`showEyeLine`, the snap candidate, the clamp in
+  `clampToWall()` and `eyeLineLayout` all still work, but nothing in the UI turns it on —
+  no toolbar button, no toggle, no input, and it's off the layout menu. Put the controls
+  back together when it returns; don't half-revive it.
 - `frameStyles[]` — two kinds, interchangeable downstream:
   - `kind:'preset'` — DRAWN frame: `{artW,artH,matIn,frameWIn,mouldingKey,matKey}`; `outerW/H`
     are derived (`presetOuter`) and stored so all existing maths keeps working.
@@ -117,14 +132,21 @@ than in the panel. No other step repeats there: one sentence, one place.
   the printed nail map is the point of the app and the tab bar has to say so.
 - `App.jsx` — shell, keyboard shortcuts (undo/redo, Cmd+D duplicate, arrows nudge,
   Delete, Esc), mobile detection via `useMediaQuery('(max-width: 860px)')`, and the
-  bottom sheet. UI state (`selectedIds[]`, `selectedObstacleId`, `tab`, modals) is transient.
+  bottom sheet. The sheet handle is a full-width strip with `touch-action: none` and
+  swipe handlers: without both, a downward drag there is pull-to-refresh and the project
+  reloads out from under the user. Scroll containers inside the sheet use
+  `overscroll-behavior: contain` for the same reason. UI state (`selectedIds[]`, `selectedObstacleId`, `tab`, modals) is transient.
 - `WallCanvas.jsx` — Konva stage, zoom/pan, calibration, placed frames, obstacles,
-  selection + Transformer rotate handle, snap guides, grid / dimensions / eye-line overlays.
+  selection + Transformer rotate handle, snap guides, grid / dimension overlays.
   Dims recompute live on `onDragMove` (frames dispatch position mid-drag).
 - `SelectionBar.jsx` — floating inspector: numeric X/Y, rotation, crop, duplicate, delete;
   align/distribute/equal-gap when several frames are selected; obstacle size/position when
   an obstacle is selected.
 - `dimensions.js` — `buildDimensions()` returns per-frame blueprint measures: one horizontal (gap to nearest left neighbour, else offset from wall left) and one vertical (nearest above, else wall top); plus wall totals drawn in WallCanvas.
+- `PanelFrames.jsx` — the frame library plus `freeSpot()`, which scores grid positions by
+  how much they'd cover what's already on the wall and takes the first clear one. New
+  frames used to stack 2in apart, which on a touch screen meant only the top one could be
+  grabbed. On mobile, adding a frame also drops the sheet so the user sees it land.
 - `PanelWall.jsx` — branches on wall state and shows ONE of them: no wall (presets +
   size + "Use blank wall", then "Or upload a wall photo"), blank wall (same + colour),
   photo (status, a single **Select wall area** CTA, the two rarer scale routes behind a

@@ -75,6 +75,5 @@ export function demoDoc() {
     { w: wIn, h: hIn }
   )
   doc.placedFrames = placed.map((p) => (pos[p.id] ? { ...p, ...pos[p.id] } : p))
-  doc.settings = { ...doc.settings, showEyeLine: true }
   return doc
 }

@@ -45,6 +45,29 @@ function Shell() {
   const toggleUnits = () =>
     dispatch({ type: 'set', payload: { units: state.units === 'in' ? 'm' : 'in' } })
 
+  // Swipe the handle to open/close the sheet. Without this the gesture falls
+  // through to the browser, which reads a downward drag at the top of the page
+  // as pull-to-refresh and reloads the project out from under the user.
+  const dragRef = useRef(null)
+  const sheetDrag = {
+    onTouchStart: (e) => {
+      dragRef.current = { y: e.touches[0].clientY, open: ui.sheetOpen, moved: false }
+    },
+    onTouchMove: (e) => {
+      const d = dragRef.current
+      if (!d) return
+      const dy = e.touches[0].clientY - d.y
+      if (Math.abs(dy) < 24) return
+      d.moved = true
+      if (dy > 0 && d.open) patchUi({ sheetOpen: false })
+      else if (dy < 0 && !d.open) patchUi({ sheetOpen: true })
+      dragRef.current = null
+    },
+    onTouchEnd: () => {
+      dragRef.current = null
+    },
+  }
+
   // First visit: run the tour once the app has painted.
   useEffect(() => {
     if (tourSeen()) return
@@ -181,6 +204,7 @@ function Shell() {
               className="sheet-handle"
               aria-label={ui.sheetOpen ? 'Close panel' : 'Open panel'}
               onClick={() => patchUi({ sheetOpen: !ui.sheetOpen })}
+              {...sheetDrag}
             />
             <Sidebar
               ui={ui}
