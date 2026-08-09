@@ -14,7 +14,7 @@ import {
 } from 'react-konva'
 import { useStore } from '../store.jsx'
 import { useImage, photoPlacement, workArea, frameBoxIn, clamp } from '../utils.js'
-import { toInches, disp, stepFor, unitLabel, IN_PER_M } from '../units.js'
+import { toInches, disp, stepFor, unitLabel, smallUnit, IN_PER_M } from '../units.js'
 import { buildDimensions } from '../dimensions.js'
 import { openingOf, moulding as mouldingOf, mat as matOf } from '../frames.js'
 import { obstacleKind, obstacleRect } from '../obstacles.js'
@@ -481,32 +481,8 @@ export default function WallCanvas({ ui, patchUi, canvasApi }) {
               />
             )}
 
-            {/* museum eye-line */}
-            {state.settings.showEyeLine && ppi && eyeLineY != null && (
-              <Group listening={false}>
-                <HaloLine
-                  points={[
-                    originX,
-                    originY + inToDisp(eyeLineY),
-                    originX + inToDisp(wallWIn),
-                    originY + inToDisp(eyeLineY),
-                  ]}
-                  stroke={CANVAS.eyeLine}
-                  zoom={view.zoom}
-                  strokeW={1.5}
-                  dash={[12 / view.zoom, 8 / view.zoom]}
-                />
-                <Label x={originX + 4} y={originY + inToDisp(eyeLineY) - 18 / view.zoom} scaleX={1 / view.zoom} scaleY={1 / view.zoom}>
-                  <Tag fill={CANVAS.eyeTag} cornerRadius={3} opacity={0.92} />
-                  <Text
-                    text={`eye-line ${fmtLen(state.settings.eyeLineIn, state.units)}`}
-                    fontSize={11}
-                    fill={CANVAS.eyeText}
-                    padding={3}
-                  />
-                </Label>
-              </Group>
-            )}
+            {/* The eye-line guide is parked for now — the setting still exists and
+                snapping still honours it, but nothing turns it on. */}
 
             {/* obstacles (sofa, TV, switch…) */}
             {ppi &&
@@ -525,7 +501,7 @@ export default function WallCanvas({ ui, patchUi, canvasApi }) {
                     ppi={ppi}
                     displayScale={displayScale}
                     zoom={view.zoom}
-                    units={state.units}
+                    units={smallUnit(state.units)}
                     selected={ui.selectedObstacleId === o.id}
                     onSelect={() => patchUi({ selectedObstacleId: o.id, selectedIds: [] })}
                     onDragMove={(xIn, yIn, alt) => {
@@ -589,6 +565,7 @@ export default function WallCanvas({ ui, patchUi, canvasApi }) {
                 offY={originY}
                 inToDisp={inToDisp}
                 units={state.units}
+                smallUnits={smallUnit(state.units)}
                 zoom={view.zoom}
               />
             )}
@@ -661,15 +638,6 @@ export default function WallCanvas({ ui, patchUi, canvasApi }) {
             title="Blueprint measurements"
           >
             Measure
-          </button>
-          <button
-            className={state.settings.showEyeLine ? 'active' : 'ghost'}
-            onClick={() =>
-              dispatch({ type: 'setSettings', payload: { showEyeLine: !state.settings.showEyeLine } })
-            }
-            title={`Eye-line at ${fmtLen(state.settings.eyeLineIn, state.units)} from the floor`}
-          >
-            Eye-line
           </button>
           <button
             className={state.settings.snap ? 'active' : 'ghost'}
@@ -1015,7 +983,7 @@ function ObstacleNode({
 // Format an inch value in the active unit for labels.
 function fmtLen(inches, units) {
   const n = disp(inches, units)
-  return units === 'm' ? `${n}m` : `${n}"`
+  return units === 'in' ? `${n}"` : `${n}${units}`
 }
 
 // Figma-style reference grid, drawn only over the wall area.
@@ -1104,6 +1072,7 @@ function DimensionsOverlay({
   offY,
   inToDisp,
   units,
+  smallUnits,
   zoom,
 }) {
   const styleById = {}
@@ -1146,7 +1115,7 @@ function DimensionsOverlay({
             y1={Y(d.y1)}
             x2={X(d.x2)}
             y2={Y(d.y2)}
-            text={fmtLen(d.value, units)}
+            text={fmtLen(d.value, smallUnits)}
             zoom={zoom}
           />
         ))}

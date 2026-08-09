@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useStore, uid } from '../store.jsx'
-import { disp, unitLabel } from '../units.js'
+import { disp, unitLabel, smallUnit } from '../units.js'
 import {
   ART_SIZES,
   MOULDINGS,
@@ -19,14 +19,16 @@ import SectionTitle from './SectionTitle.jsx'
 // frame required. This is the fast path most people want.
 export default function FrameLibrary({ onPlace }) {
   const { state, dispatch } = useStore()
-  const { units } = state
+  // Frames are described in cm/in, never metres.
+  const units = smallUnit(state.units)
   const u = unitLabel(units)
   const toast = useToast()
   const [mouldingKey, setMouldingKey] = useState('black')
   const [matKey, setMatKey] = useState('white')
   const [matIn, setMatIn] = useState(DEFAULT_MAT_IN)
   const [frameWIn, setFrameWIn] = useState(DEFAULT_MOULDING_IN)
-  const [group, setGroup] = useState('us')
+  // Metric users want A sizes first; the inch list is a US catalogue.
+  const [group, setGroup] = useState(state.units === 'm' ? 'iso' : 'us')
 
   const sizes = ART_SIZES.filter((s) => s.group === group)
 

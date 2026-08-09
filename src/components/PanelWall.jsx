@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useStore } from '../store.jsx'
 import { readImageFile, workArea, clamp } from '../utils.js'
 import { toInches, unitLabel, disp as dispIn, stepFor } from '../units.js'
@@ -12,25 +12,57 @@ const BLANK_PPI = 10 // render px per inch for a blank wall
 // Starting sizes for the AREA you plan to hang in — not the whole room wall.
 // `floor` = how high that area's bottom edge sits, so "over a sofa" starts above
 // the sofa back rather than at the skirting board.
-const WALL_PRESETS = [
-  { label: 'Over a sofa', w: 84, h: 48, floor: 36 },
-  { label: 'Over a bed', w: 72, h: 54, floor: 40 },
-  { label: 'Over a console', w: 60, h: 42, floor: 34 },
-  { label: 'Hallway run', w: 120, h: 60, floor: 30 },
-  { label: 'Stairwell', w: 96, h: 90, floor: 20 },
-  { label: 'Whole wall', w: 144, h: 96, floor: 0 },
-]
+// Each system gets its own round numbers: 84×48in is a sofa wall, and so is
+// 2.1×1.2m — converting either one into the other gives a preset that reads
+// like a measurement error.
+const cm = (v) => v / 2.54
+const WALL_PRESETS = {
+  in: [
+    { label: 'Over a sofa', w: 84, h: 48, floor: 36 },
+    { label: 'Over a bed', w: 72, h: 54, floor: 40 },
+    { label: 'Over a console', w: 60, h: 42, floor: 34 },
+    { label: 'Hallway run', w: 120, h: 60, floor: 30 },
+    { label: 'Stairwell', w: 96, h: 90, floor: 20 },
+    { label: 'Whole wall', w: 144, h: 96, floor: 0 },
+  ],
+  m: [
+    { label: 'Over a sofa', w: cm(210), h: cm(120), floor: cm(90) },
+    { label: 'Over a bed', w: cm(180), h: cm(140), floor: cm(100) },
+    { label: 'Over a console', w: cm(150), h: cm(105), floor: cm(85) },
+    { label: 'Hallway run', w: cm(300), h: cm(150), floor: cm(75) },
+    { label: 'Stairwell', w: cm(240), h: cm(230), floor: cm(50) },
+    { label: 'Whole wall', w: cm(360), h: cm(240), floor: 0 },
+  ],
+}
 
 export default function PanelWall({ ui, patchUi, mobile }) {
   const { state, dispatch } = useStore()
   const { units } = state
   const toast = useToast()
-  const [blankW, setBlankW] = useState(() => String(dispIn(48, units)))
-  const [blankH, setBlankH] = useState(() => String(dispIn(36, units)))
+  // Round in whichever system we start in — 1.219 m is a converted 48in, not a
+  // number anyone would type.
+  const [blankW, setBlankW] = useState(() => (units === 'm' ? '1.2' : '48'))
+  const [blankH, setBlankH] = useState(() => (units === 'm' ? '0.9' : '36'))
   const [wallW, setWallW] = useState('')
   // On the photo path the blank-wall controls are hidden — but the user has to
   // be able to change their mind, so this re-reveals them.
   const [showBlank, setShowBlank] = useState(false)
+
+  // The size boxes hold typed text, so switching units has to convert it —
+  // otherwise "48" silently becomes 48 metres.
+  const prevUnits = useRef(units)
+  useEffect(() => {
+    if (prevUnits.current === units) return
+    const from = prevUnits.current
+    const conv = (txt) => {
+      const v = parseFloat(txt)
+      return Number.isNaN(v) ? txt : String(dispIn(toInches(v, from), units))
+    }
+    setBlankW(conv)
+    setBlankH(conv)
+    setWallW(conv)
+    prevUnits.current = units
+  }, [units])
 
   async function onWallUpload(e) {
     const file = e.target.files?.[0]
@@ -89,8 +121,6 @@ export default function PanelWall({ ui, patchUi, mobile }) {
   // area — otherwise the guide is drawn nowhere and layouts silently ignore it.
   const { wallHIn } = workArea(state)
   const hasWall = wallHIn > 0
-  const eyeMinIn = state.settings.floorOffsetIn
-  const eyeMaxIn = hasWall ? state.settings.floorOffsetIn + wallHIn : Number.MAX_SAFE_INTEGER
   const disp = (inches) => dispIn(inches, units)
 
   // One decision at a time: the two ways of making a wall are mutually
@@ -174,7 +204,7 @@ export default function PanelWall({ ui, patchUi, mobile }) {
         {showBlankControls && (
           <>
             <div className="chips">
-              {WALL_PRESETS.map((p) => (
+              {(WALL_PRESETS[units] || WALL_PRESETS.in).map((p) => (
                 <button
                   key={p.label}
                   className="chip"
@@ -270,39 +300,18 @@ export default function PanelWall({ ui, patchUi, mobile }) {
         )}
       </div>
 
-      {/* Height references — these drive the eye-line and the hanging guide.
-          The presets already set both, so a normal user never opens this. */}
+      {/* How high the area sits — this is what turns wall positions into real
+          nail heights. The presets set it, so a normal user never opens this.
+          The eye-line control lives here too when it comes back. */}
       {mode !== 'none' && (
         <div className="calib-method">
           <SectionTitle
-            title="Heights"
-            info="Everything vertical is measured from the floor. Eye-line is where picture centres sit — galleries use 57in. Bottom edge is how far the bottom of your wall area sits off the floor, which is what turns wall positions into real nail heights."
+            title="Height off the floor"
+            info="Everything vertical in the hanging guide is measured from the floor. This is how far the bottom edge of your wall area sits above it — 0 means the area starts at the skirting board."
           />
           <details className="more">
-            <summary>Eye-line and floor height (optional)</summary>
+            <summary>Set the floor height (optional)</summary>
             <div className="more-body">
-              <div className="row">
-                <label className="mini">Eye-line</label>
-                <input
-                  type="number"
-                  step={stepFor(units)}
-                  min={disp(eyeMinIn)}
-                  max={disp(eyeMaxIn)}
-                  value={disp(state.settings.eyeLineIn)}
-                  onChange={(e) => {
-                    const v = toInches(parseFloat(e.target.value) || 0, units)
-                    setCfg({ eyeLineIn: clamp(v, eyeMinIn, eyeMaxIn) })
-                  }}
-                  aria-label="Eye-line height from floor"
-                />
-                <span className="mini">{unitLabel(units)} from floor</span>
-              </div>
-              {hasWall && (
-                <p className="hint">
-                  Must sit on the wall: {disp(eyeMinIn)}–{disp(eyeMaxIn)} {unitLabel(units)} from
-                  the floor.
-                </p>
-              )}
               <div className="row">
                 <label className="mini">Bottom edge</label>
                 <input

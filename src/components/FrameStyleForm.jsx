@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useStore, uid } from '../store.jsx'
 import { readImageFile } from '../utils.js'
-import { toInches, unitLabel } from '../units.js'
+import { toInches, unitLabel, smallUnit } from '../units.js'
 import { useToast } from './Toasts.jsx'
 
 const empty = { name: '', width: '', height: '', count: '1', price: '', image: null, imgW: 0, imgH: 0 }
@@ -10,7 +10,7 @@ const empty = { name: '', width: '', height: '', count: '1', price: '', image: n
 // afterwards in the OpeningEditor.
 export default function FrameStyleForm({ onDone }) {
   const { state, dispatch } = useStore()
-  const { units } = state
+  const units = smallUnit(state.units)
   const toast = useToast()
   const [f, setF] = useState(empty)
 
@@ -66,7 +66,7 @@ export default function FrameStyleForm({ onDone }) {
       <div className="row">
         <input
           type="number"
-          step={units === 'm' ? 0.01 : 0.5}
+          step={0.5}
           placeholder={`W (${unitLabel(units)})`}
           aria-label={`Outer width in ${unitLabel(units)}`}
           value={f.width}
@@ -74,7 +74,7 @@ export default function FrameStyleForm({ onDone }) {
         />
         <input
           type="number"
-          step={units === 'm' ? 0.01 : 0.5}
+          step={0.5}
           placeholder={`H (${unitLabel(units)})`}
           aria-label={`Outer height in ${unitLabel(units)}`}
           value={f.height}

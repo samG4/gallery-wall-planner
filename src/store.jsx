@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { workArea } from './utils.js'
 import { obstacleKind } from './obstacles.js'
+import { localeUnits } from './units.js'
 
 const KEY = 'gallery-wall-planner:v2'
 const KEY_V1 = 'gallery-wall-planner:v1'
@@ -216,7 +217,9 @@ function loadInitial() {
   } catch (e) {
     console.warn('load failed', e)
   }
-  return emptyDoc()
+  // Nothing saved: this is a first run, so start in the units of wherever the
+  // user is rather than making them find the toggle.
+  return { ...emptyDoc(), units: localeUnits() }
 }
 
 export function StoreProvider({ children }) {

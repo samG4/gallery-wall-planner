@@ -69,7 +69,12 @@ body {
   background: var(--panel); border-right: 1px solid var(--border);
   display: flex; flex-direction: column; min-height: 0;
 }
-.sidebar-scroll { flex: 1; overflow-y: auto; padding: 12px; -webkit-overflow-scrolling: touch; }
+/* `contain` keeps a scroll that runs out of panel from becoming a page pull —
+   on Android that pull is a reload, which throws the project away. */
+.sidebar-scroll {
+  flex: 1; overflow-y: auto; padding: 12px; -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
 
 .tabstrip {
   display: flex; gap: 2px; padding: 6px; background: var(--panel2);
@@ -546,7 +551,7 @@ label.mini { flex: 0 0 auto; }
   bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
   height: min(66vh, 560px); z-index: 30;
   background: var(--panel); border-top: 1px solid var(--border);
-  border-radius: 20px 20px 0 0;
+  border-radius: 20px 20px 0 0; overscroll-behavior: contain;
   transform: translateY(105%); transition: transform .22s ease;
   display: flex; flex-direction: column; box-shadow: var(--shadow-lg);
 }
@@ -555,9 +560,11 @@ label.mini { flex: 0 0 auto; }
 /* The grip is a 46x5 pill, but the button around it has to stay thumb-sized —
    drawing the pill straight onto the button made the mobile min-height rule
    inflate it into a grey blob. */
+/* Full width so the swipe has somewhere to land, and touch-action: none so the
+   browser doesn't read a downward drag here as pull-to-refresh. */
 .sheet-handle {
-  width: 72px; height: 26px; min-height: 26px; padding: 0; flex: 0 0 auto;
-  margin: 4px auto 0; background: transparent;
+  width: 100%; height: 30px; min-height: 30px; padding: 0; flex: 0 0 auto;
+  margin: 2px 0 0; background: transparent; touch-action: none;
   display: flex; align-items: center; justify-content: center;
 }
 .sheet-handle::before {

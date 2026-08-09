@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useStore, uid } from '../store.jsx'
-import { disp, stepFor, toInches, unitLabel } from '../units.js'
+import { disp, stepFor, toInches, unitLabel, smallUnit } from '../units.js'
 import { frameBoxIn } from '../utils.js'
 import { align, distribute, evenGap } from '../align.js'
 import { obstacleKind } from '../obstacles.js'
@@ -35,7 +35,8 @@ function NumInput({ valueIn, units, onCommitIn, title, width = 62, step }) {
 
 export default function SelectionBar({ ui, patchUi }) {
   const { state, dispatch } = useStore()
-  const units = state.units
+  // Positions and gaps are frame-scale, so cm/in rather than metres.
+  const units = smallUnit(state.units)
   const u = unitLabel(units)
   const selected = ui.selectedIds || []
 
