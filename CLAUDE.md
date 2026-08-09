@@ -139,6 +139,9 @@ needs a `data-tour` attribute** — they are the anchors, don't rely on class na
 - New per-frame or per-photo transforms go on `placed.crop` or `placed` and must be applied in BOTH the editor preview and WallCanvas so they stay WYSIWYG.
 - Anything that reads a frame's opening goes through `openingOf`; anything that reads a
   frame's bbox goes through `frameBoxIn`.
+- Panel sections use `<SectionTitle title info>` — the explanation lives behind an ⓘ
+  (hover title + click disclosure), not as a standing paragraph. Keep `<p class="hint">`
+  only for inline instructions and validation feedback next to the control they concern.
 - Multi-frame changes use `updateManyPlaced` so they undo as one step.
 - `settings.eyeLineIn` is a height above the floor and MUST land on the working area.
   The reducer's `clampToWall()` enforces that on every `set`/`setSettings`/`load`, so

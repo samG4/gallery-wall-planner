@@ -4,6 +4,7 @@ import { readImageFile, workArea, clamp } from '../utils.js'
 import { toInches, fromInches, unitLabel } from '../units.js'
 import { useToast } from './Toasts.jsx'
 import { demoDoc } from '../project.js'
+import SectionTitle from './SectionTitle.jsx'
 
 const BLANK_PPI = 10 // render px per inch for a blank wall
 
@@ -106,14 +107,10 @@ export default function PanelWall({ ui, patchUi }) {
 
       {/* Blank canvas — no photo needed, scale is exact from dimensions */}
       <div className="calib-method">
-        <strong>Wall area</strong>
-        <p className="hint">
-          No wall photo? Give the area a size and colour and start arranging.
-        </p>
-        <p className="hint">
-          Pick the patch of wall you'll actually hang in, not the whole room wall — you can edit
-          the numbers after.
-        </p>
+        <SectionTitle
+          title="Wall area"
+          info="The patch of wall you'll actually hang in — not the whole room wall. No photo needed: give it a size and a colour and start arranging. The presets also set how high off the floor that patch starts."
+        />
         <div className="chips">
           {WALL_PRESETS.map((p) => (
             <button
@@ -166,7 +163,10 @@ export default function PanelWall({ ui, patchUi }) {
 
       {/* Photo wall */}
       <div className="calib-method">
-        <strong>Or use a wall photo</strong>
+        <SectionTitle
+          title="Or use a wall photo"
+          info="Photograph the wall straight on, then mark a rectangle you know the real size of. That sets the scale, so frames render at true size against your own room."
+        />
         <label className="filebtn small">
           {state.wallMode === 'photo' ? 'Replace wall photo' : 'Upload wall photo'}
           <input type="file" accept="image/*" onChange={onWallUpload} hidden />
@@ -220,10 +220,10 @@ export default function PanelWall({ ui, patchUi }) {
 
       {/* Height references — these drive the eye-line and the hanging guide */}
       <div className="calib-method" data-tour="heights">
-        <strong>Heights</strong>
-        <p className="hint">
-          Used for the eye-line guide and for nail heights in the hanging guide.
-        </p>
+        <SectionTitle
+          title="Heights"
+          info="Everything vertical is measured from the floor. Eye-line is where picture centres sit — galleries use 57in. Area bottom is how far the bottom edge of your wall area is off the floor, which is what turns wall positions into real nail heights."
+        />
         <div className="row">
           <label className="mini">Eye-line</label>
           <input

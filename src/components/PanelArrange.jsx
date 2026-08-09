@@ -5,6 +5,7 @@ import { workArea } from '../utils.js'
 import { LAYOUTS, usableArea, layoutInArea } from '../layouts.js'
 import { OBSTACLE_KINDS, obstacleKind, obstacleRect, obstacleRects, makeObstacle } from '../obstacles.js'
 import { useToast } from './Toasts.jsx'
+import SectionTitle from './SectionTitle.jsx'
 
 export default function PanelArrange({ ui, patchUi }) {
   const { state, dispatch } = useStore()
@@ -65,7 +66,10 @@ export default function PanelArrange({ ui, patchUi }) {
       <h2>4 · Arrange</h2>
 
       <div className="calib-method">
-        <strong>Spacing &amp; helpers</strong>
+        <SectionTitle
+          title="Spacing &amp; helpers"
+          info="Gap is the spacing auto-layouts use and the one frames snap to. Hanger drop is how far below a frame's top edge its hook sits — measure yours, it decides every nail height in the guide."
+        />
         <div className="row">
           <label className="mini">Gap</label>
           <input
@@ -122,12 +126,10 @@ export default function PanelArrange({ ui, patchUi }) {
       </div>
 
       <div className="calib-method">
-        <strong>Obstacles</strong>
-        <p className="hint">
-          Measured the way you'd measure the room: a width, and how high off the{' '}
-          <strong>floor</strong> it reaches. Only the part that overlaps this wall area blocks
-          anything — a sofa back at 33{u} blocks the bottom 33{u} of the wall, not all of it.
-        </p>
+        <SectionTitle
+          title="Obstacles"
+          info="Measured the way you'd measure the room: a width, and how high off the floor it reaches. Only the part that overlaps this wall area blocks anything — a sofa back 33in up blocks the bottom 33in of the wall, not all of it."
+        />
         <div className="chips">
           {OBSTACLE_KINDS.map((k) => (
             <button key={k.key} className="chip" onClick={() => addObstacle(k.key)}>
@@ -164,8 +166,10 @@ export default function PanelArrange({ ui, patchUi }) {
       </div>
 
       <div className="calib-method">
-        <strong>Auto-layout</strong>
-        <p className="hint">Seed an arrangement, then drag frames to fine-tune.</p>
+        <SectionTitle
+          title="Auto-layout"
+          info="Seeds an arrangement you then drag to taste. Each template centres itself in the tallest band of wall that's clear of your obstacles, and never places a frame off the wall."
+        />
         <div className="layout-btns">
           {Object.entries(LAYOUTS).map(([k, v]) => (
             <button key={k} onClick={() => applyLayout(k)} disabled={!scaleReady}>

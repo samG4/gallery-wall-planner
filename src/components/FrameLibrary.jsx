@@ -13,6 +13,7 @@ import {
   DEFAULT_MOULDING_IN,
 } from '../frames.js'
 import { useToast } from './Toasts.jsx'
+import SectionTitle from './SectionTitle.jsx'
 
 // Pick a standard size, a moulding and a mat — get a frame with no photo of a
 // frame required. This is the fast path most people want.
@@ -49,6 +50,10 @@ export default function FrameLibrary({ onPlace }) {
 
   return (
     <div className="frame-library" data-tour="frames">
+      <SectionTitle
+        title="Frame library"
+        info="Sizes are the ART size — what the frame holds. The smaller number under each is the outer size once the mat and moulding are added, which is what actually takes up wall. Pick a moulding and mat first; the frame is drawn, no photo needed."
+      />
       <div className="lib-controls">
         <div className="row">
           <label className="mini">Moulding</label>
@@ -147,9 +152,6 @@ export default function FrameLibrary({ onPlace }) {
           )
         })}
       </div>
-      <p className="hint">
-        Sizes are the <strong>art</strong> size; the outer size shown includes the mat and moulding.
-      </p>
     </div>
   )
 }
