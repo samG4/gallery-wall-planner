@@ -70,8 +70,9 @@ and layout live in `localStorage` on your machine.
 - **Export** — download the wall as a PNG, or save/reopen the whole project as a JSON
   file (images included) to back it up or move it to another browser.
 - **Units** — toggle inches / cm (inches are canonical internally).
-- **Gallery palette** — black, white, warm greys and wood, the colours real frames come
-  in. One oak accent marks whatever you're currently acting on.
+- **Black & white** — a monochrome interface so nothing competes with the artwork.
+  Guides on the canvas are drawn with a white halo under a black stroke, so they stay
+  legible over a dark wall photo and a white blank alike.
 - **Undo / redo** — full history with sensible gesture coalescing
   (Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z or Ctrl+Y).
 - **Works on phones** — the layout switches to a full-screen canvas with a bottom tab

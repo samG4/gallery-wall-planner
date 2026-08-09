@@ -20,7 +20,10 @@ export function ToastProvider({ children }) {
       <div className="toast-wrap" role="status" aria-live="polite">
         {items.map((t) => (
           <div key={t.id} className={`toast ${t.kind}`}>
-            <span>{t.message}</span>
+            <span className="toast-mark" aria-hidden="true">
+              {t.kind === 'ok' ? '✓' : t.kind === 'warn' ? '⚠' : 'ℹ'}
+            </span>
+            <span className="toast-msg">{t.message}</span>
             <button
               className="toast-x"
               aria-label="Dismiss"

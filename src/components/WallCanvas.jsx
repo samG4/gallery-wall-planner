@@ -21,6 +21,41 @@ import { obstacleKind, obstacleRect } from '../obstacles.js'
 import { snapBox } from '../snap.js'
 import { CANVAS } from '../theme.js'
 
+// Guides are drawn over a wall that might be a dark photo or a white blank, so
+// every line goes down twice: a white halo, then the black stroke on top.
+function HaloLine({ points, zoom, strokeW = 1.4, dash, stroke = CANVAS.dim }) {
+  return (
+    <>
+      <Line
+        points={points}
+        stroke={CANVAS.halo}
+        strokeWidth={(strokeW + 2.4) / zoom}
+        dash={dash}
+        lineCap="round"
+        listening={false}
+      />
+      <Line
+        points={points}
+        stroke={stroke}
+        strokeWidth={strokeW / zoom}
+        dash={dash}
+        lineCap="round"
+        listening={false}
+      />
+    </>
+  )
+}
+
+// `strokeW`, not `width` — Rect already owns `width`.
+function HaloRect({ zoom, strokeW = 2, dash, stroke = CANVAS.selection, ...rect }) {
+  return (
+    <>
+      <Rect {...rect} stroke={CANVAS.halo} strokeWidth={(strokeW + 2.4) / zoom} dash={dash} listening={false} />
+      <Rect {...rect} stroke={stroke} strokeWidth={strokeW / zoom} dash={dash} listening={false} />
+    </>
+  )
+}
+
 const MIN_ZOOM = 0.25
 const MAX_ZOOM = 8
 
@@ -377,15 +412,14 @@ export default function WallCanvas({ ui, patchUi, canvasApi }) {
 
             {/* selected wall-area outline (photo mode) */}
             {hasRegion && (
-              <Rect
+              <HaloRect
                 x={originX}
                 y={originY}
                 width={inToDisp(wallWIn)}
                 height={inToDisp(wallHIn)}
                 stroke={CANVAS.region}
-                strokeWidth={2 / view.zoom}
+                zoom={view.zoom}
                 dash={[10 / view.zoom, 6 / view.zoom]}
-                listening={false}
               />
             )}
 
@@ -405,7 +439,7 @@ export default function WallCanvas({ ui, patchUi, canvasApi }) {
             {/* museum eye-line */}
             {state.settings.showEyeLine && ppi && eyeLineY != null && (
               <Group listening={false}>
-                <Line
+                <HaloLine
                   points={[
                     originX,
                     originY + inToDisp(eyeLineY),
@@ -413,7 +447,8 @@ export default function WallCanvas({ ui, patchUi, canvasApi }) {
                     originY + inToDisp(eyeLineY),
                   ]}
                   stroke={CANVAS.eyeLine}
-                  strokeWidth={1.5 / view.zoom}
+                  zoom={view.zoom}
+                  strokeW={1.5}
                   dash={[12 / view.zoom, 8 / view.zoom]}
                 />
                 <Label x={originX + 4} y={originY + inToDisp(eyeLineY) - 18 / view.zoom} scaleX={1 / view.zoom} scaleY={1 / view.zoom}>
@@ -515,7 +550,7 @@ export default function WallCanvas({ ui, patchUi, canvasApi }) {
 
             {/* snap guides */}
             {guides.map((g, i) => (
-              <Line
+              <HaloLine
                 key={i}
                 points={
                   g.type === 'v'
@@ -523,9 +558,9 @@ export default function WallCanvas({ ui, patchUi, canvasApi }) {
                     : [originX - 24, originY + inToDisp(g.at), originX + inToDisp(wallWIn) + 24, originY + inToDisp(g.at)]
                 }
                 stroke={g.kind === 'center' ? CANVAS.guideCenter : CANVAS.guideEdge}
-                strokeWidth={1 / view.zoom}
-                dash={[6 / view.zoom, 4 / view.zoom]}
-                listening={false}
+                zoom={view.zoom}
+                strokeW={1.2}
+                dash={g.kind === 'center' ? undefined : [6 / view.zoom, 4 / view.zoom]}
               />
             ))}
 
@@ -533,15 +568,32 @@ export default function WallCanvas({ ui, patchUi, canvasApi }) {
             {ui.calibrating && calA && (
               <>
                 {calB && (
-                  <Line
+                  <HaloLine
                     points={[calA.x, calA.y, calB.x, calB.y]}
                     stroke={CANVAS.calib}
-                    strokeWidth={3 / view.zoom}
-                    dash={[8, 4]}
+                    zoom={view.zoom}
+                    strokeW={2.5}
+                    dash={[8 / view.zoom, 4 / view.zoom]}
                   />
                 )}
-                <Circle x={calA.x} y={calA.y} radius={5 / view.zoom} fill={CANVAS.calib} />
-                {calB && <Circle x={calB.x} y={calB.y} radius={5 / view.zoom} fill={CANVAS.calib} />}
+                <Circle
+                  x={calA.x}
+                  y={calA.y}
+                  radius={5 / view.zoom}
+                  fill={CANVAS.calib}
+                  stroke={CANVAS.halo}
+                  strokeWidth={2 / view.zoom}
+                />
+                {calB && (
+                  <Circle
+                    x={calB.x}
+                    y={calB.y}
+                    radius={5 / view.zoom}
+                    fill={CANVAS.calib}
+                    stroke={CANVAS.halo}
+                    strokeWidth={2 / view.zoom}
+                  />
+                )}
               </>
             )}
           </Group>
@@ -800,13 +852,7 @@ function PlacedFrameNode({
         )}
 
         {selected && (
-          <Rect
-            width={fw}
-            height={fh}
-            stroke={CANVAS.selection}
-            strokeWidth={3 / zoom}
-            listening={false}
-          />
+          <HaloRect width={fw} height={fh} stroke={CANVAS.selection} zoom={zoom} strokeW={3} />
         )}
       </Group>
       {soleSelection && (
@@ -987,9 +1033,9 @@ function DimSeg({ type, x1, y1, x2, y2, text, zoom = 1 }) {
   const ly = type === 'h' ? midY - 16 / zoom : midY
   return (
     <Group listening={false}>
-      <Line points={[x1, y1, x2, y2]} stroke={CANVAS.dim} strokeWidth={1.2 / zoom} />
+      <HaloLine points={[x1, y1, x2, y2]} stroke={CANVAS.dim} zoom={zoom} strokeW={1.2} />
       {ticks.map((p, i) => (
-        <Line key={i} points={p} stroke={CANVAS.dim} strokeWidth={1.2 / zoom} />
+        <HaloLine key={i} points={p} stroke={CANVAS.dim} zoom={zoom} strokeW={1.2} />
       ))}
       <Label
         x={lx}

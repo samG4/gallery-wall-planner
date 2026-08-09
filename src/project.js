@@ -37,8 +37,8 @@ export function demoDoc() {
 
   const styles = [
     makePresetStyle(uid('style'), { artW: 16, artH: 20, matIn: 2.5, mouldingKey: 'black', count: 1, name: '16×20 Black' }),
-    makePresetStyle(uid('style'), { artW: 11, artH: 14, matIn: 2, mouldingKey: 'oak', count: 2, name: '11×14 Oak' }),
-    makePresetStyle(uid('style'), { artW: 8, artH: 10, matIn: 1.5, mouldingKey: 'white', count: 3, name: '8×10 White' }),
+    makePresetStyle(uid('style'), { artW: 11, artH: 14, matIn: 2, mouldingKey: 'white', count: 2, name: '11×14 White' }),
+    makePresetStyle(uid('style'), { artW: 8, artH: 10, matIn: 1.5, mouldingKey: 'grey', count: 3, name: '8×10 Grey' }),
   ]
   doc.frameStyles = styles
 

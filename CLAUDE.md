@@ -109,11 +109,19 @@ is an approximation — say so if it ever matters.
   modal wall on mobile.
 
 ## Look and feel (src/styles.css, src/theme.js)
-Gallery palette: black (`--ink`), white, warm greys and wood (`--wood` oak) — the colours
-real frames come in. Primary fills are near-black with white ink; the oak accent is
-reserved for whatever the user is acting on (selection, snap centre lines, calibration,
-focus rings) so it stays legible over any wall photo. Konva can't read CSS variables, so
-canvas colours live in `src/theme.js` as `CANVAS`; **change both together.**
+Premium black & white: neutral greys only (no warm tint), pure black as the single
+accent, and inversion (black fill / white ink) as the "active" signal. With no colour to
+lean on, meaning comes from weight and inversion — destructive buttons are the heaviest
+outline on the page, toasts carry a ✓ / ⚠ / ℹ mark.
+
+The canvas sits over content we don't control (a dark wall photo, a white blank), so a
+plain black line can vanish. Everything drawn over the wall goes down twice via the
+`HaloLine` / `HaloRect` helpers in WallCanvas: a white halo, then the black stroke.
+**Use them for any new guide** rather than a bare `<Line>`. Note `HaloRect` takes
+`strokeW`, not `width` — Rect already owns `width`.
+
+Konva can't read CSS variables, so canvas colours live in `src/theme.js` as `CANVAS`;
+**change both together.**
 
 ## Onboarding (src/components/Coachmarks.jsx)
 First-run tour, replayable from the header `?`. Steps declare a `data-tour` selector, a
