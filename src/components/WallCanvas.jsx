@@ -21,6 +21,7 @@ import { obstacleKind, obstacleRect } from '../obstacles.js'
 import { snapBox } from '../snap.js'
 import { CANVAS } from '../theme.js'
 import { demoDoc } from '../project.js'
+import { nextAction } from '../progress.js'
 import { useToast } from './Toasts.jsx'
 
 // Guides are drawn over a wall that might be a dark photo or a white blank, so
@@ -350,8 +351,34 @@ export default function WallCanvas({ ui, patchUi, canvasApi }) {
 
   const showFrames = !!ppi
 
+  // A photo with no scale is the one step whose action happens on the canvas
+  // rather than in the panel, so the canvas says so itself. Copy comes from the
+  // Next bar so the two can never disagree — and no other step repeats here,
+  // because saying the same sentence twice on one screen is just noise.
+  const prompt = nextAction(state, ui.visited)
+  const showPrompt = prompt.action === 'wallArea'
+  const runPrompt = () => {
+    const patch = { tab: prompt.tab, visited: { ...ui.visited, [prompt.tab]: true } }
+    if (prompt.action === 'wallArea') patch.wallAreaOpen = true
+    else if (prompt.action === 'guide') patch.guideOpen = true
+    else patch.sheetOpen = true
+    patchUi(patch)
+  }
+
   return (
     <div className="canvas-inner" ref={wrapRef}>
+      {showPrompt && (
+        <div className="empty-state compact">
+          <div className="prompt-card">
+            <div>
+              <strong>{prompt.title}</strong>
+              <span>{prompt.hint}</span>
+            </div>
+            <button onClick={runPrompt}>{prompt.cta}</button>
+          </div>
+        </div>
+      )}
+
       {!state.wallMode && (
         <div className="empty-state">
           <div>
@@ -701,11 +728,9 @@ export default function WallCanvas({ ui, patchUi, canvasApi }) {
         </div>
       )}
 
-      {state.wallMode === 'photo' && !ppi && (
-        <div className="calib-overlay warn-overlay">
-          Set the scale (step 1) so frames render at real size.
-        </div>
-      )}
+      {/* The "no scale yet" warning used to live here too. The prompt card at
+          the top of this component says the same thing and gives you the button
+          to fix it, so this was a third copy of one sentence. */}
     </div>
   )
 }

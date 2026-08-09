@@ -16,6 +16,10 @@ export default function NextStep({ ui, patchUi, mobile, floating = false }) {
       patch.guideOpen = true
       patch.sheetOpen = false
     }
+    if (step.action === 'wallArea') {
+      patch.wallAreaOpen = true
+      patch.sheetOpen = false
+    }
     patchUi(patch)
   }
 

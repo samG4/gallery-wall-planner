@@ -97,13 +97,18 @@ is an approximation — say so if it ever matters.
 
 ## Guided path (src/progress.js, NextStep.jsx)
 The five tabs are a path, not a menu. `progress.js` is the only place that answers
-"how far along is this?" — `stepsDone(state)` drives the ✓ on each tab, and
+"how far along is this?" — `stepsDone(state, visited)` drives the ✓ on each tab, and
 `nextAction(state, visited)` returns the one thing to do next (`{tab, title, hint,
-cta, action?}`). `NextStep` renders it as a bar under the panel; on mobile it also
+cta, action?}`). `action` is `'guide'` (open the hanging guide) or `'wallArea'` (open
+the wall-area editor); anything else just switches tab. `NextStep` renders it as a bar
+under the panel; on mobile it also
 floats above the tab bar while the sheet is down, nothing is selected, and the user
 hasn't reached the guide yet. `visited` is transient UI state (`ui.visited`, set on
 every tab open) so a step is never nudged twice. **New nudges go in `nextAction`, not
 into panels** — the bar is the single voice telling the user where they are.
+The `'wallArea'` step also renders on the canvas (`.empty-state.compact` in
+WallCanvas), because that is the one step whose action happens on the canvas rather
+than in the panel. No other step repeats there: one sentence, one place.
 
 ## UI (src/components)
 - `Sidebar.jsx` — tab host for the five panels (`PanelWall/Frames/Photos/Arrange/Export`).
@@ -120,6 +125,13 @@ into panels** — the bar is the single voice telling the user where they are.
   align/distribute/equal-gap when several frames are selected; obstacle size/position when
   an obstacle is selected.
 - `dimensions.js` — `buildDimensions()` returns per-frame blueprint measures: one horizontal (gap to nearest left neighbour, else offset from wall left) and one vertical (nearest above, else wall top); plus wall totals drawn in WallCanvas.
+- `PanelWall.jsx` — branches on wall state and shows ONE of them: no wall (presets +
+  size + "Use blank wall", then "Or upload a wall photo"), blank wall (same + colour),
+  photo (status, a single **Select wall area** CTA, the two rarer scale routes behind a
+  `<details class="more">`, "Replace wall photo", and a way back to a blank wall). The
+  blank controls are never on screen next to the photo calibration — they are two
+  different answers to one question. Heights sits behind a disclosure and only exists
+  once a wall does. **Keep new options behind `.more`** unless a first-timer needs them.
 - `WallAreaEditor.jsx` — drag a rectangle on the wall photo to pick the working area + enter its real W×H (sets scale + bounds). Opened via `ui.wallAreaOpen`.
 - `OpeningEditor.jsx` — drag inner-opening rectangle on a frame image (image-kind styles only).
 - `PhotoCropEditor.jsx` — pan/zoom/rotate a photo to fit an opening (WYSIWYG with the canvas).
@@ -163,6 +175,10 @@ to and the card only renders once that rect is fresh — otherwise the card jump
 while the spotlight is still on the previous element. Seen-state is its own localStorage key, so
 resetting a project doesn't replay the tour. **Anything you want the tour to point at
 needs a `data-tour` attribute** — they are the anchors, don't rely on class names.
+Three steps only (tab strip, wall panel, Hang it tab), each one plain sentence.
+**Every step's target must exist on a virgin first run** — a step pointing at the view
+toolbar or frame library left half a second of blank screen, because neither is on the
+page before a wall exists. Depth belongs in the Next bar, not in more cards.
 
 ## Conventions
 - Keep inches canonical; never store cm.

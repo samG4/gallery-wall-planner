@@ -27,7 +27,7 @@ const PANELS = {
 export default function Sidebar({ ui, patchUi, canvasApi, mobile, showTabs = true }) {
   const { state } = useStore()
   const Panel = PANELS[ui.tab] || PanelWall
-  const done = stepsDone(state)
+  const done = stepsDone(state, ui.visited)
 
   return (
     <aside className="sidebar">

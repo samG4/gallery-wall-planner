@@ -14,12 +14,14 @@ export function hasWall(state) {
 
 // Per-tab completion. photos/arrange are optional — they tick when used, and
 // never block the path to the hanging guide.
-export function stepsDone(state) {
+export function stepsDone(state, visited = {}) {
   return {
     wall: hasWall(state),
     frames: state.placedFrames.length > 0,
+    // Arranging leaves no single trace — an auto-layout looks like any other
+    // set of positions — so opening the tab counts as having done it.
+    arrange: state.obstacles.length > 0 || !!visited.arrange,
     photos: state.placedFrames.some((p) => p.photoId),
-    arrange: state.obstacles.length > 0,
     export: false, // the destination, never "done"
   }
 }
@@ -27,11 +29,23 @@ export function stepsDone(state) {
 // What to do next, in one sentence plus the button that does it.
 // `action: 'guide'` opens the hanging guide rather than just switching tab.
 export function nextAction(state, visited = {}) {
+  // A photo with no scale is the one dead end in the app: nothing can be drawn
+  // until the area is marked, so it gets its own step rather than the generic
+  // "choose a wall" nudge.
+  if (state.wallMode === 'photo' && !hasWall(state)) {
+    return {
+      tab: 'wall',
+      action: 'wallArea',
+      title: 'Set the wall area',
+      hint: 'Drag a box over the wall and type its real size.',
+      cta: 'Select area',
+    }
+  }
   if (!hasWall(state)) {
     return {
       tab: 'wall',
-      title: 'Set your wall area',
-      hint: 'Pick a preset size. Everything after this is drawn at true scale.',
+      title: 'Set your wall size',
+      hint: 'Pick a preset. Everything after is drawn to real scale.',
       cta: 'Choose a wall',
     }
   }
@@ -39,15 +53,23 @@ export function nextAction(state, visited = {}) {
     return {
       tab: 'frames',
       title: 'Add some frames',
-      hint: 'Standard sizes, drawn at their real outer size — mat and moulding included.',
+      hint: 'Standard sizes, drawn at their real outer size.',
       cta: 'Open frames',
+    }
+  }
+  if (!state.placedFrames.some((p) => p.photoId) && !visited.photos) {
+    return {
+      tab: 'photos',
+      title: 'Add your photos',
+      hint: 'Upload images, then drag one onto each frame.',
+      cta: 'Open photos',
     }
   }
   if (state.placedFrames.length > 1 && !visited.arrange) {
     return {
       tab: 'arrange',
       title: 'Lay them out',
-      hint: 'One click arranges everything around your sofa, TV or light switch.',
+      hint: 'One click arranges everything around your sofa or TV.',
       cta: 'Auto-arrange',
     }
   }
@@ -55,7 +77,7 @@ export function nextAction(state, visited = {}) {
     tab: 'export',
     action: 'guide',
     title: 'Print the hanging guide',
-    hint: 'Every nail position, measured from the wall edges and up from the floor.',
+    hint: 'Every nail position, measured from the wall edges and the floor.',
     cta: 'Open guide',
   }
 }
